@@ -97,7 +97,7 @@ public:
 			rcDefault,
 			NULL,
 			WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
-			WS_EX_CLIENTEDGE
+			0//WS_EX_CLIENTEDGE
 		);
 
 		// ÈÝÆ÷Ãæ°å
@@ -206,7 +206,7 @@ public:
 			rcDefault,
 			NULL,
 			WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
-			WS_EX_CLIENTEDGE
+			0//WS_EX_CLIENTEDGE
 		);
 		m_PaneContainer.Create(this->m_hWndClient, L"Container");
 

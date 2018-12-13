@@ -11,6 +11,7 @@ public:
 	DECLARE_WND_CLASS(L"OpenCV_ImageView")
 
 	WTL::CBitmap m_Bitmap;
+	cv::Mat m_OriginData;
 
 	BOOL PreTranslateMessage(MSG* pMsg)
 	{
@@ -25,7 +26,7 @@ public:
 
 	BEGIN_MSG_MAP_EX(CView)
 		MSG_WM_CREATE(OnCreate)
-		MSG_WM_PAINT(OnPaint)
+		//MSG_WM_PAINT(OnPaint)
 		CHAIN_MSG_MAP(WTL::CScrollWindowImpl<CView>)
 	END_MSG_MAP()
 
@@ -34,9 +35,20 @@ public:
 	//	LRESULT CommandHandler(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 	//	LRESULT NotifyHandler(int /*idCtrl*/, LPNMHDR /*pnmh*/, BOOL& /*bHandled*/)
 
-	int OnCreate(LPCREATESTRUCT lpCreateStruct)
+	void SetBitmap(std::string const& file)
 	{
-		cv::Mat cvmat = freeze::load_image("E:/image_data/xxx/normal.tiff");
+		m_OriginData = freeze::load_image(file);
+		SetBitmap(m_OriginData);
+	}
+
+	void SetBitmap(cv::Mat const& origin)
+	{
+		if (m_Bitmap)
+		{
+			m_Bitmap.DeleteObject();
+		}
+
+		auto cvmat = freeze::flip(origin);
 		auto channels = cvmat.channels();
 		auto width = cvmat.rows;
 		auto height = cvmat.cols;
@@ -48,20 +60,29 @@ public:
 		m_Bitmap.CreateDIBitmap(GetDC(), &bitmap_info->bmiHeader, CBM_INIT, data, bitmap_info, DIB_RGB_COLORS);
 
 		SetScrollOffset(0, 0, FALSE);
-		SetScrollSize(width,height);
+		SetScrollSize(width, height);
+	}
 
+	int OnCreate(LPCREATESTRUCT lpCreateStruct)
+	{
 		SetMsgHandled(FALSE);
 		return 0;
 	}
 
-	void OnPaint(WTL::CDCHandle /*dc*/)
+	void DoPaint(WTL::CDCHandle dc)
 	{
-		WTL::CPaintDC dc(m_hWnd);
+		if (!m_Bitmap)return;
 
 		CRect rc;
 		GetClientRect(rc);
-		WTL::CMemoryDC memDC(GetDC(), rc);
-		memDC.SelectBitmap(m_Bitmap);
-		dc.BitBlt(0, 0, rc.Width(), rc.Height(), memDC, 0, 0, SRCCOPY);
+
+		WTL::CDC memDC;
+		memDC.CreateCompatibleDC(dc);
+		auto old = memDC.SelectBitmap(m_Bitmap);
+		SIZE bmpSize;
+		m_Bitmap.GetSize(bmpSize);
+		int left = (rc.Width() - bmpSize.cx) / 2;
+		dc.BitBlt(left, 0, bmpSize.cx, bmpSize.cy, memDC, 0, 0, SRCCOPY);
+		memDC.SelectBitmap(old);
 	}
 };

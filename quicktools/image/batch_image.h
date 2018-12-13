@@ -17,8 +17,14 @@ namespace freeze
 	cv::Mat load_image(std::string const& file, int flags = cv::IMREAD_COLOR)
 	{
 		auto mat = cv::imread(file, flags);
-		cv::flip(mat, mat, 0);
 		return mat;
+	}
+
+	cv::Mat flip(cv::Mat const& mat)
+	{
+		cv::Mat fliped;
+		cv::flip(mat, fliped, 0);
+		return fliped;
 	}
 
 	// use: bpp=channels*8,origin=1
