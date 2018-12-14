@@ -47,6 +47,12 @@
     <ClInclude Include="image\image_view.h">
       <Filter>Header Files\image</Filter>
     </ClInclude>
+    <ClInclude Include="dockpane.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="custom_checked_listview.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="quicktools.rc">

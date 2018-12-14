@@ -6,6 +6,8 @@
 #include "resource.h"
 #include "image/batch_image.h"
 #include "image/image_view.h"
+#include "custom_checked_listview.h"
+#include "dockpane.h"
 #include "aboutdlg.h"
 #include "View.h"
 #include "MainFrm.h"

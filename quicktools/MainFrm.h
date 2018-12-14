@@ -21,7 +21,7 @@ public:
 	WTL::CSplitterWindow m_SplitterWindow;
 	WTL::CTabView m_TabView;
 	WTL::CCommandBarCtrl m_CmdBar;
-	WTL::CPaneContainer m_PaneContainer;
+	freeze::CDockingContainer m_PaneContainer;
 
 	DWORD m_dwDock = PANE_DOCK_RIGHT;
 	int m_PaneWidth = DEFAULT_PANE_WIDTH;
@@ -139,10 +139,14 @@ public:
 	// Menu -> New
 	void OnFileNew(UINT /*uNotifyCode*/, int /*nID*/, CWindow /*wndCtl*/)
 	{
+		// TODO: 在哪里销毁的？
 		CView* pView = new CView;
 		pView->Create(m_TabView, rcDefault, NULL, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, 0);
 
+		using namespace std::literals;
+		auto normal_image = "e:/image_data/xxx/normal.tiff"s;
 		m_TabView.AddPage(pView->m_hWnd, _T("normal.tiff"));
+		pView->SetBitmap(normal_image);
 
 		// TODO: add code to initialize document
 	}
