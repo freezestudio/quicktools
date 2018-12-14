@@ -17,10 +17,17 @@ namespace freeze
 
 		int OnCreate(LPCREATESTRUCT lpCreateStruct)
 		{
-			m_Listview.Create(this->m_hWnd, rcDefault,nullptr, WS_CHILD | WS_VISIBLE | LVS_REPORT | LVS_SHOWSELALWAYS, WS_EX_CLIENTEDGE);
-			m_Listview.AddColumn(L"(全选)序号", 1);
-			m_Listview.AddItem(0, 0, L"1");
-			m_Listview.AddItem(1, 0, L"2");
+			m_Listview.Create(this->m_hWnd,
+				rcDefault,
+				nullptr,
+				WS_CHILD|WS_VISIBLE|WS_CLIPCHILDREN|LVS_REPORT,
+				WS_EX_CLIENTEDGE);
+			m_Listview.AddColumn(L"序号", 1);
+			m_Listview.AddColumn(L"工件码", 2,120);
+			m_Listview.AddColumn(L"文件名", 3, 260);
+			m_Listview.AddColumn(L"日期", 4, 80);
+			m_Listview.AddColumn(L"时间", 5, 80);
+			m_Listview.AddColumn(L"检测位置", 6);
 			SetClient(m_Listview);
 			SetMsgHandled(FALSE);
 			return 0;

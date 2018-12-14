@@ -5,8 +5,8 @@
 #pragma once
 
 #define WINDOW_MENU_POSITION	3
-#define PANE_DOCK_LEFT 0xFE01
-#define PANE_DOCK_RIGHT 0xFE02
+#define PANE_DOCK_LEFT 0xEE01
+#define PANE_DOCK_RIGHT 0xEE02
 #define DEFAULT_PANE_WIDTH 400
 
 class CMainFrame :
@@ -212,7 +212,7 @@ public:
 			WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
 			0//WS_EX_CLIENTEDGE
 		);
-		m_PaneContainer.Create(this->m_hWndClient, L"Container");
+		m_PaneContainer.Create(this->m_hWndClient, L"Í¼Ïñ·ÖÀà");
 
 		CRect rcSplit;
 		GetClientRect(rcSplit);
