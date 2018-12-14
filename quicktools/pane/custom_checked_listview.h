@@ -72,7 +72,7 @@ namespace freeze {
 
 		void AddToVector(std::wstring const file)
 		{
-
+			// 
 		}
 
 		BEGIN_MSG_MAP_EX(CCustomCheckedListview)
