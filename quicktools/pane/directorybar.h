@@ -43,7 +43,7 @@ namespace freeze {
 			MSG_WM_COMMAND(OnCommand)
 			MESSAGE_HANDLER_EX(WM_DIRECTORY_CHANGED, OnDirectoryChanged)
 			//MSG_WM_SIZE(OnSize)
-		END_MSG_MAP()
+			END_MSG_MAP()
 
 		int OnCreate(LPCREATESTRUCT lpCreateStruct)
 		{
@@ -74,7 +74,7 @@ namespace freeze {
 		// unused
 		void OnSize(UINT nType, CSize size)
 		{
-
+			// Empty
 		}
 
 		void OnCommand(UINT uNotifyCode, int nID, CWindow wndCtl)
@@ -88,8 +88,7 @@ namespace freeze {
 				if (IDOK == result)
 				{
 					auto path = folderDlg.GetFolderPath();
-					m_DirEdit.SetWindowText(path);
-					SendMessage(WM_DIRECTORY_CHANGED);
+					SendMessage(WM_DIRECTORY_CHANGED, 0, reinterpret_cast<LPARAM>(path));
 				}
 			}
 			break;
@@ -98,8 +97,10 @@ namespace freeze {
 			}
 		}
 
-		LRESULT OnDirectoryChanged(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/)
+		LRESULT OnDirectoryChanged(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam)
 		{
+
+			m_DirEdit.SetWindowText(reinterpret_cast<LPCTSTR>(lParam));
 			auto dir = GetDirectory();
 			ResetListView(dir);
 			return 0;
