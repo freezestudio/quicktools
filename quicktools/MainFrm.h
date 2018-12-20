@@ -23,8 +23,15 @@ public:
 	WTL::CCommandBarCtrl m_CmdBar;
 	freeze::CDockingContainer m_PaneContainer;
 
+	std::map<std::wstring, int> m_mapImageFileView;
+	std::wstring m_ActivedImage;
+
 	DWORD m_dwDock = PANE_DOCK_RIGHT;
 	int m_PaneWidth = DEFAULT_PANE_WIDTH;
+
+	// TODO: 当用户激活时的处理
+	CView* m_pActiveView = nullptr;
+	freeze::CCannyDlg m_CannyDlg;
 
 	virtual BOOL PreTranslateMessage(MSG* pMsg)
 	{
@@ -55,15 +62,45 @@ public:
 		COMMAND_ID_HANDLER_EX(ID_APP_ABOUT, OnAppAbout)
 		COMMAND_ID_HANDLER_EX(ID_WINDOW_CLOSE, OnWindowClose)
 		COMMAND_ID_HANDLER_EX(ID_WINDOW_CLOSE_ALL, OnWindowCloseAll)
+		COMMAND_ID_HANDLER_EX(ID_OPERATOR_CANNY, OnCanny)
+		COMMAND_ID_HANDLER_EX(ID_OPERATOR_LAPLACIAN, OnLaplacian)
+		COMMAND_ID_HANDLER_EX(ID_OPERATOR_SOBEL, OnSobel)
 		COMMAND_RANGE_HANDLER_EX(ID_WINDOW_TABFIRST, ID_WINDOW_TABLAST, OnWindowActivate)
+		MESSAGE_HANDLER_EX(WM_OPEN_IMAGE, OnOpenImage)
+		MESSAGE_HANDLER_EX(WM_CANNY,OnCanny)
 		CHAIN_MSG_MAP(WTL::CUpdateUI<CMainFrame>)
 		CHAIN_MSG_MAP(WTL::CFrameWindowImpl<CMainFrame>)
-		END_MSG_MAP()
+	END_MSG_MAP()
 
 	// Handler prototypes (uncomment arguments if needed):
 	//	LRESULT MessageHandler(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 	//	LRESULT CommandHandler(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 	//	LRESULT NotifyHandler(int /*idCtrl*/, LPNMHDR /*pnmh*/, BOOL& /*bHandled*/)
+
+	void AddImageFileView(std::wstring const& file, int page)
+	{
+		m_mapImageFileView.insert(std::make_pair(file, page));
+	}
+
+	void RemoveImageFileView(std::wstring const& file)
+	{
+		auto find = m_mapImageFileView.find(file);
+		if (find != m_mapImageFileView.end())
+		{
+			m_mapImageFileView.erase(file);
+		}
+	}
+
+	void RemoveImageFileView(int page)
+	{
+		auto find = std::find_if(std::begin(m_mapImageFileView), std::end(m_mapImageFileView), [&page](auto pair) {
+			return pair.second == page;
+		});
+		if (m_mapImageFileView.end() != find)
+		{
+			m_mapImageFileView.erase(find);
+		}
+	}
 
 	int OnCreate(LPCREATESTRUCT lpCreateStruct)
 	{
@@ -116,6 +153,39 @@ public:
 		WTL::CMenuHandle menuMain = m_CmdBar.GetMenu();
 		m_TabView.SetWindowMenu(menuMain.GetSubMenu(WINDOW_MENU_POSITION));
 
+		// 算子对话框
+		m_CannyDlg.Create(this->m_hWnd);
+
+		return 0;
+	}
+
+	void UpdateLayout(BOOL bResizeBars = TRUE)
+	{
+		RECT rect = {};
+		this->GetClientRect(&rect);
+
+		// position bars and offset their dimensions
+		UpdateBarsPosition(rect, bResizeBars);
+
+		// resize client window
+		if (m_hWndClient != NULL)
+			::SetWindowPos(m_hWndClient, NULL, rect.left, rect.top,
+				rect.right - rect.left, rect.bottom - rect.top,
+				SWP_NOZORDER | SWP_NOACTIVATE);
+	}
+
+	// Canny算子参数
+	LRESULT OnCanny(UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		if (m_pActiveView)
+		{
+			m_pActiveView->PostMessage(WM_CANNY, wParam, lParam);
+		}
+		else
+		{
+			//WTL::AtlMessageBox(this->m_hWnd, L"没有活动视图", L"警告", MB_OK | MB_ICONWARNING);
+		}
+		SetMsgHandled(FALSE);
 		return 0;
 	}
 
@@ -136,19 +206,52 @@ public:
 		PostMessage(WM_CLOSE);
 	}
 
+	LRESULT OnOpenImage(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam)
+	{
+		m_ActivedImage = reinterpret_cast<wchar_t*>(lParam);
+		if (auto active = static_cast<int>(wParam); active == 0)
+		{
+			// 已经显示的图像，激活到前台
+			auto find = m_mapImageFileView.find(m_ActivedImage);
+			if (m_mapImageFileView.end() != find)
+			{
+				m_TabView.SetActivePage(find->second);
+				return 0;
+			}
+
+			if (auto page = m_TabView.GetActivePage(); -1 != page)
+			{
+				//CView* pView = &(*reinterpret_cast<CView*>(m_TabView.GetPageHWND(page)));
+				//pView->RemoveBitmap();
+				//RemoveImageFileView(pView);
+
+				//pView->SetBitmap(freeze::convert_from(m_ActivedImage));
+				//AddImageFileView(m_ActivedImage, page);
+				OnWindowClose(0, 0, nullptr);
+			}
+			OnFileNew(0, 0, nullptr);
+		}
+		else
+		{
+			OnFileNew(0, 0, nullptr);
+		}
+		return 0;
+	}
+
 	// Menu -> New
 	void OnFileNew(UINT /*uNotifyCode*/, int /*nID*/, CWindow /*wndCtl*/)
 	{
+		if (m_ActivedImage.empty())return;
+
 		// TODO: 在哪里销毁的？
 		CView* pView = new CView;
+		m_pActiveView = pView;
 		pView->Create(m_TabView, rcDefault, NULL, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, 0);
 
-		using namespace std::literals;
-		auto normal_image = "e:/image_data/xxx/normal.tiff"s;
-		m_TabView.AddPage(pView->m_hWnd, _T("normal.tiff"));
-		pView->SetBitmap(normal_image);
+		m_TabView.AddPage(pView->m_hWnd, m_ActivedImage.c_str());
+		pView->SetBitmap2(m_ActivedImage);
 
-		// TODO: add code to initialize document
+		AddImageFileView(m_ActivedImage, m_TabView.GetActivePage());
 	}
 
 	// Menu -> View -> Toolbar
@@ -184,16 +287,22 @@ public:
 	{
 		int nActivePage = m_TabView.GetActivePage();
 		if (nActivePage != -1)
+		{
 			m_TabView.RemovePage(nActivePage);
+			RemoveImageFileView(nActivePage);
+		}
 		else
+		{
 			::MessageBeep((UINT)-1);
-
+		}
 	}
 
 	// Menu -> Window -> Close All
 	void OnWindowCloseAll(UINT /*uNotifyCode*/, int /*nID*/, CWindow /*wndCtl*/)
 	{
 		m_TabView.RemoveAllPages();
+		m_mapImageFileView.clear();
+		m_ActivedImage = L"";
 	}
 
 	// 0xFF00 - 0xFFFD = 254
@@ -201,6 +310,28 @@ public:
 	{
 		int nPage = nID - ID_WINDOW_TABFIRST;
 		m_TabView.SetActivePage(nPage);
+	}
+
+	// Menu -> Operator -> Canny
+	void OnCanny(UINT /*uNotifyCode*/, int /*nID*/, CWindow /*wndCtl*/)
+	{
+		m_CannyDlg.ShowWindow(SW_SHOW);
+		if (m_pActiveView)
+		{
+			m_pActiveView->PostMessage(WM_CANNY, 0, 0);
+		}
+	}
+
+	// Menu -> Operator -> Laplacian
+	void OnLaplacian(UINT /*uNotifyCode*/, int /*nID*/, CWindow /*wndCtl*/)
+	{
+
+	}
+
+	// Menu -> Operator -> Sobel
+	void OnSobel(UINT /*uNotifyCode*/, int /*nID*/, CWindow /*wndCtl*/)
+	{
+
 	}
 
 	void CreatePaneContainer()
@@ -212,6 +343,7 @@ public:
 			WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
 			0//WS_EX_CLIENTEDGE
 		);
+
 		m_PaneContainer.Create(this->m_hWndClient, L"图像分类");
 
 		CRect rcSplit;

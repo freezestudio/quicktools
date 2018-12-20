@@ -4,6 +4,8 @@
 #include "stdafx.h"
 
 #include "resource.h"
+#include "image/utils.h"
+#include "image/image_data.h"
 #include "image/batch_image.h"
 #include "image/image_view.h"
 #include "pane/directorybar.h"
@@ -11,6 +13,7 @@
 #include "pane/custom_checked_listview.h"
 #include "pane/dockpane.h"
 #include "aboutdlg.h"
+#include "dlgs/canny_dlg.h"
 #include "View.h"
 #include "MainFrm.h"
 
@@ -29,7 +32,7 @@ int Run(LPTSTR /*lpstrCmdLine*/ = NULL, int nCmdShow = SW_SHOWDEFAULT)
 		return 0;
 	}
 
-	wndMain.ShowWindow(nCmdShow);
+	wndMain.ShowWindow(SW_MAXIMIZE);
 
 	int nRet = theLoop.Run();
 

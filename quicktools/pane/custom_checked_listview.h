@@ -3,10 +3,15 @@
 #define ID_SEARCH_BAR 0xEE01
 #define ID_DIRECTORY_BAR 0xEE02
 #define ID_CHECKED_LISTVIEW 0xEE03
+#define ID_CHECKED_HEADER 0xEE04
 
 #define INNER_BAR_HEIGHT 20
 #define NORMAL_IMAGE_FILE L"normal.tiff"
 #define IMAGE_FILE_MINIMIZE_SIZE 32
+
+#define OPEN_IMAGE_THIS 0
+#define OPEN_IMAGE_NEW 1
+#define WM_OPEN_IMAGE WM_USER + 102
 
 namespace freeze {
 	struct ListViewData
@@ -19,6 +24,9 @@ namespace freeze {
 		std::wstring loc;
 	};
 
+	// 带选择框的列表视图
+	// 顶部添加了筛选框
+	// 底部添加了目录框
 	class CCustomCheckedListview :
 		public ATL::CWindowImpl<CCustomCheckedListview>
 	{
@@ -30,6 +38,10 @@ namespace freeze {
 		CDirBar m_DirBar;
 		std::vector<ListViewData> m_VecData;
 		std::wstring m_CurrentImageDirectory;
+		std::wstring m_CurrentImageFile;
+
+		//TODO: 是否有参考图像
+		bool m_HasRefImage = false;
 
 		void AddColumn(std::wstring const& label, int index, int width = 0)
 		{
@@ -105,6 +117,15 @@ namespace freeze {
 			}
 		}
 
+		bool IsChecked(int index) const
+		{
+			if (m_CheckListViewCtrl.IsWindow())
+			{
+				return m_CheckListViewCtrl.GetCheckState(index) == TRUE;
+			}
+			return false;
+		}
+
 		void ResetListView(std::wstring const& dir)
 		{
 			ReadImageFiles(dir);
@@ -114,22 +135,39 @@ namespace freeze {
 			{
 				m_CheckListViewCtrl.EnableGroupView(TRUE);
 			}
-			LVGROUP group = { sizeof(LVGROUP) };
-			group.pszHeader = L"参考图像";
-			group.iGroupId = 1;
-			group.mask = LVGF_HEADER | LVGF_GROUPID;
-			auto success = m_CheckListViewCtrl.AddGroup(&group);
-			//auto dwErr = GetLastError();
 
-			group.pszHeader = L"检测图像";
-			group.iGroupId = 2;
-			success = m_CheckListViewCtrl.AddGroup(&group);
-
-			InsertItem(0, 1, m_VecData[0]);
-
-			for (auto i = 1; i < m_VecData.size() - 1; ++i)
+			if (m_HasRefImage)
 			{
-				InsertItem(i, 2, m_VecData[i]);
+				LVGROUP group = { sizeof(LVGROUP) };
+				group.pszHeader = L"参考图像";
+				group.iGroupId = 1;
+				group.mask = LVGF_HEADER | LVGF_GROUPID;
+				auto success = m_CheckListViewCtrl.AddGroup(&group);
+				//auto dwErr = GetLastError();
+
+				group.pszHeader = L"检测图像";
+				group.iGroupId = 2;
+				success = m_CheckListViewCtrl.AddGroup(&group);
+
+				InsertItem(0, 1, m_VecData[0]);
+
+				for (auto i = 1; i < m_VecData.size() - 1; ++i)
+				{
+					InsertItem(i, 2, m_VecData[i]);
+				}
+			}
+			else
+			{
+				LVGROUP group = { sizeof(LVGROUP) };
+				group.pszHeader = L"检测图像";
+				group.iGroupId = 1;
+				group.mask = LVGF_HEADER | LVGF_GROUPID;
+				auto success = m_CheckListViewCtrl.AddGroup(&group);
+				
+				for (auto i = 0; i < m_VecData.size() - 1; ++i)
+				{
+					InsertItem(i, 1, m_VecData[i]);
+				}
 			}
 
 		}
@@ -137,10 +175,12 @@ namespace freeze {
 		void ReadImageFiles(std::wstring const& dir)
 		{
 			m_VecData.clear();
+			m_HasRefImage = false;
+
 			auto path{ std::filesystem::path{dir} };
 			auto begin = std::filesystem::directory_iterator{ path };
 			auto end = std::filesystem::directory_iterator{};
-			int index = 2;
+			int index = 1;
 			for (auto iter = begin; iter != end; ++iter)
 			{
 				if (iter->is_regular_file())
@@ -150,7 +190,7 @@ namespace freeze {
 					if (_wcsicmp(file_name.wstring().c_str(), NORMAL_IMAGE_FILE) == 0)
 					{
 						auto list_data = ListViewData{
-							1,
+							index++,
 							L"参考图像",
 							file_name.wstring(),
 							L"NA",
@@ -158,6 +198,7 @@ namespace freeze {
 							L"NA",
 						};
 						m_VecData.emplace_back(list_data);
+						m_HasRefImage = true;
 					}
 					else
 					{
@@ -212,6 +253,17 @@ namespace freeze {
 				nullptr,
 				WS_CHILD | WS_VISIBLE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNTOP | LVS_SINGLESEL, WS_EX_CLIENTEDGE,
 				ID_CHECKED_LISTVIEW);
+			if (m_CheckListViewCtrl.IsWindow())
+			{
+				auto header = m_CheckListViewCtrl.GetHeader();
+				header.ModifyStyle(0, HDS_CHECKBOXES);
+				header.SetDlgCtrlID(ID_CHECKED_HEADER);
+				HDITEM hdi = {};
+				hdi.mask = HDI_WIDTH|HDI_FORMAT;
+				hdi.fmt = HDF_CHECKBOX;
+				hdi.cxy = 80;
+				header.AddItem(&hdi);
+			}
 			m_DirBar.Create(this->m_hWnd,
 				rcDefault,
 				nullptr,
@@ -250,6 +302,7 @@ namespace freeze {
 
 		LRESULT OnNotify(int idCtrl, LPNMHDR pnmh)
 		{
+			// 选择列表项时
 			if (ID_CHECKED_LISTVIEW == idCtrl)
 			{
 				if (NM_CLICK == pnmh->code || NM_RCLICK == pnmh->code)
@@ -261,11 +314,10 @@ namespace freeze {
 
 					if (m_VecData.end() != find)
 					{
-						auto selected_file = m_CurrentImageDirectory + L"\\" + find->file;
-						// send message -> selected file
-						int a = 0;
+						m_CurrentImageFile = m_CurrentImageDirectory + L"\\" + find->file;
 					}
 
+					// 弹出菜单
 					if (NM_RCLICK == pnmh->code)
 					{
 						auto menu = LoadMenu(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDR_CLV_CONTEXT_MENU));
@@ -273,19 +325,58 @@ namespace freeze {
 						auto pt = reinterpret_cast<LPNMITEMACTIVATE>(pnmh)->ptAction;
 						ClientToScreen(&pt);
 						TrackPopupMenuEx(pop,
-							TPM_CENTERALIGN | TPM_TOPALIGN | TPM_RETURNCMD | TPM_RIGHTBUTTON | TPM_NOANIMATION,
+							TPM_NOANIMATION,
 							pt.x,pt.y,
-							m_CheckListViewCtrl.m_hWnd,
+							this->m_hWnd,
 							nullptr);
 					}
-				} 
+					else
+					{
+						GetParent().SendMessage(WM_OPEN_IMAGE, OPEN_IMAGE_THIS, reinterpret_cast<LPARAM>(m_CurrentImageFile.c_str()));
+					}
+				}
 			}
+
+			// TODO: 选择列表项前的复选框时
+			// ... 与菜单项"勾选"相同
+
+			// 当选择列表视图中的全选框时
+			if (auto header = m_CheckListViewCtrl.GetHeader(); header.GetDlgCtrlID()==idCtrl)
+			{
+				HDITEM hdi;
+				if (header.GetItem(0, &hdi))
+				{
+					if ((hdi.fmt & HDF_CHECKED) != 0)
+					{
+						// 全选
+					}
+					else
+					{
+						// 取消全选
+					}
+				}
+			}
+
 			return 0;
 		}
 
 		void OnCommand(UINT uNotifyCode, int nID, CWindow wndCtl)
 		{
-
+			switch (nID)
+			{
+			default:
+				break;
+			case ID_CLV_MENU_SELECT_ALL: // 全选
+				break;
+			case ID_CLV_MENU_SELECT_ONE: // 勾选
+				break;
+			case ID_CLV_MENU_OPEN_THIS: // 当前窗口打开
+				GetParent().SendMessage(WM_OPEN_IMAGE, OPEN_IMAGE_THIS, reinterpret_cast<LPARAM>(m_CurrentImageFile.c_str()));
+				break;
+			case ID_CLV_MENU_OPEN_NEW: // 新建窗口打开
+				GetParent().SendMessage(WM_OPEN_IMAGE, OPEN_IMAGE_NEW, reinterpret_cast<LPARAM>(m_CurrentImageFile.c_str()));
+				break;
+			}
 		}
 
 		void OnDropFiles(HDROP hDropInfo)

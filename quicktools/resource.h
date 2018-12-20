@@ -5,9 +5,21 @@
 #define IDD_ABOUTBOX                    100
 #define IDR_MAINFRAME                   128
 #define IDR_CLV_CONTEXT_MENU            201
+#define IDD_CANNY                       202
+#define IDD_LAPLACIAN                   203
+#define IDD_SOBEL                       206
+#define ID_RESET_BTN                    999
+#define IDC_THRESHOLD_SLIDER_1          1000
+#define IDC_THRESHOLD_EDIT_1            1001
+#define IDC_THRESHOLD_SLIDER_2          1002
+#define IDC_THRESHOLD_EDIT_2            1003
+#define IDC__APERTURE_EDIT              1004
+#define IDC_L2GRADIENT_CHECK            1005
+#define IDC_CHECK_RESET_RAW             1006
+#define IDC_CHECK1                      1007
+#define IDC_CHECK_NO_DEFECT             1007
 #define ID_WINDOW_CLOSE                 32772
 #define ID_WINDOW_CLOSE_ALL             32773
-#define ID_CLV_32775                    32775
 #define ID_CLV_32776                    32776
 #define ID_CLV_32777                    32777
 #define ID_CLV_32778                    32778
@@ -15,14 +27,17 @@
 #define ID_CLV_MENU_SELECT_ONE          32780
 #define ID_CLV_MENU_OPEN_THIS           32781
 #define ID_CLV_MENU_OPEN_NEW            32782
+#define ID_OPERATOR_CANNY               32783
+#define ID_OPERATOR_LAPLACIAN           32784
+#define ID_OPERATOR_SOBEL               32785
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        202
-#define _APS_NEXT_COMMAND_VALUE         32783
-#define _APS_NEXT_CONTROL_VALUE         1000
+#define _APS_NEXT_RESOURCE_VALUE        208
+#define _APS_NEXT_COMMAND_VALUE         32786
+#define _APS_NEXT_CONTROL_VALUE         1008
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

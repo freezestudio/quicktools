@@ -36,6 +36,107 @@ BEGIN
     END
 END
 
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_CANNY DIALOGEX 0, 0, 387, 136
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Canny算子"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "确定",IDOK,330,115,50,14
+    CONTROL         "",IDC_THRESHOLD_SLIDER_1,"msctls_trackbar32",TBS_TOP | TBS_TOOLTIPS | WS_TABSTOP,68,16,234,15,WS_EX_TRANSPARENT
+    LTEXT           "阈值1：",IDC_STATIC,25,20,29,8
+    EDITTEXT        IDC_THRESHOLD_EDIT_1,323,17,40,14,ES_AUTOHSCROLL
+    CONTROL         "",IDC_THRESHOLD_SLIDER_2,"msctls_trackbar32",TBS_TOP | TBS_TOOLTIPS | WS_TABSTOP,68,38,234,15,WS_EX_TRANSPARENT
+    LTEXT           "阈值2：",IDC_STATIC,25,42,29,8
+    EDITTEXT        IDC_THRESHOLD_EDIT_2,323,39,40,14,ES_AUTOHSCROLL
+    LTEXT           "Aperture：",IDC_STATIC,25,65,38,8
+    EDITTEXT        IDC__APERTURE_EDIT,68,62,40,14,ES_AUTOHSCROLL
+    LTEXT           "L2梯度：",IDC_STATIC,25,89,32,8
+    CONTROL         "启用/不启用",IDC_L2GRADIENT_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,68,88,59,10
+    DEFPUSHBUTTON   "重置",ID_RESET_BTN,259,115,50,14
+    CONTROL         "只显示原始图像",IDC_CHECK_RESET_RAW,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,68,108,72,10
+    CONTROL         "显示训练图像",IDC_CHECK_NO_DEFECT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,149,108,64,10
+END
+
+IDD_LAPLACIAN DIALOGEX 0, 0, 309, 176
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Laplacian算子"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "确定",IDOK,198,155,50,14
+    PUSHBUTTON      "取消",IDCANCEL,252,155,50,14
+END
+
+IDD_SOBEL DIALOGEX 0, 0, 309, 176
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Sobel算子"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "确定",IDOK,198,155,50,14
+    PUSHBUTTON      "取消",IDCANCEL,252,155,50,14
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_CANNY, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 380
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 129
+    END
+
+    IDD_LAPLACIAN, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 302
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 169
+    END
+
+    IDD_SOBEL, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 302
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 169
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_CANNY AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_LAPLACIAN AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_SOBEL AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
 #endif    // 中文(简体，中国) resources
 /////////////////////////////////////////////////////////////////////////////
 
@@ -46,6 +147,93 @@ END
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 #pragma code_page(1252)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MAINFRAME MENU
+BEGIN
+    POPUP "&File"
+    BEGIN
+        MENUITEM "&New\tCtrl+N",                ID_FILE_NEW
+        MENUITEM "&Open...\tCtrl+O",            ID_FILE_OPEN
+        MENUITEM "&Save\tCtrl+S",               ID_FILE_SAVE
+        MENUITEM "Save &As...",                 ID_FILE_SAVE_AS
+        MENUITEM SEPARATOR
+        MENUITEM "&Print...\tCtrl+P",           ID_FILE_PRINT
+        MENUITEM "Print Pre&view",              ID_FILE_PRINT_PREVIEW
+        MENUITEM "P&rint Setup...",             ID_FILE_PRINT_SETUP
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit",                       ID_APP_EXIT
+    END
+    POPUP "&Edit"
+    BEGIN
+        MENUITEM "&Undo\tCtrl+Z",               ID_EDIT_UNDO
+        MENUITEM SEPARATOR
+        MENUITEM "Cu&t\tCtrl+X",                ID_EDIT_CUT
+        MENUITEM "&Copy\tCtrl+C",               ID_EDIT_COPY
+        MENUITEM "&Paste\tCtrl+V",              ID_EDIT_PASTE
+    END
+    POPUP "&View"
+    BEGIN
+        MENUITEM "&Toolbar",                    ID_VIEW_TOOLBAR
+        MENUITEM "&Status Bar",                 ID_VIEW_STATUS_BAR
+    END
+    POPUP "&Window"
+    BEGIN
+        MENUITEM "&Close\tCtrl+F4",             ID_WINDOW_CLOSE
+        MENUITEM "Close &All",                  ID_WINDOW_CLOSE_ALL
+    END
+    POPUP "&Operator"
+    BEGIN
+        MENUITEM "&Canny",                      ID_OPERATOR_CANNY
+        MENUITEM "&Laplacian",                  ID_OPERATOR_LAPLACIAN
+        MENUITEM "&Sobel",                      ID_OPERATOR_SOBEL
+    END
+    POPUP "&Help"
+    BEGIN
+        MENUITEM "&About quicktools",           ID_APP_ABOUT
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ABOUTBOX DIALOG 0, 0, 187, 102
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,130,81,50,14
+    CTEXT           "quicktools Application v1.0\n\n(c) Copyright 2018",IDC_STATIC,25,57,78,32
+    ICON            IDR_MAINFRAME,IDC_STATIC,55,26,18,20
+    GROUPBOX        "",IDC_STATIC,7,7,115,88
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_ABOUTBOX, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 180
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 95
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -102,93 +290,12 @@ IDR_MAINFRAME           BITMAP                  "res\\Toolbar.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
-// Menu
-//
-
-IDR_MAINFRAME MENU
-BEGIN
-    POPUP "&File"
-    BEGIN
-        MENUITEM "&New\tCtrl+N",                ID_FILE_NEW
-        MENUITEM "&Open...\tCtrl+O",            ID_FILE_OPEN
-        MENUITEM "&Save\tCtrl+S",               ID_FILE_SAVE
-        MENUITEM "Save &As...",                 ID_FILE_SAVE_AS
-        MENUITEM SEPARATOR
-        MENUITEM "&Print...\tCtrl+P",           ID_FILE_PRINT
-        MENUITEM "Print Pre&view",              ID_FILE_PRINT_PREVIEW
-        MENUITEM "P&rint Setup...",             ID_FILE_PRINT_SETUP
-        MENUITEM SEPARATOR
-        MENUITEM "E&xit",                       ID_APP_EXIT
-    END
-    POPUP "&Edit"
-    BEGIN
-        MENUITEM "&Undo\tCtrl+Z",               ID_EDIT_UNDO
-        MENUITEM SEPARATOR
-        MENUITEM "Cu&t\tCtrl+X",                ID_EDIT_CUT
-        MENUITEM "&Copy\tCtrl+C",               ID_EDIT_COPY
-        MENUITEM "&Paste\tCtrl+V",              ID_EDIT_PASTE
-    END
-    POPUP "&View"
-    BEGIN
-        MENUITEM "&Toolbar",                    ID_VIEW_TOOLBAR
-        MENUITEM "&Status Bar",                 ID_VIEW_STATUS_BAR
-    END
-    POPUP "&Window"
-    BEGIN
-        MENUITEM "&Close\tCtrl+F4",             ID_WINDOW_CLOSE
-        MENUITEM "Close &All",                  ID_WINDOW_CLOSE_ALL
-    END
-    POPUP "&Help"
-    BEGIN
-        MENUITEM "&About quicktools",           ID_APP_ABOUT
-    END
-END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
 // Icon
 //
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDR_MAINFRAME           ICON                    "res\\quicktools.ico"
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Dialog
-//
-
-IDD_ABOUTBOX DIALOG 0, 0, 187, 102
-STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "About"
-FONT 8, "MS Shell Dlg"
-BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,130,81,50,14
-    CTEXT           "quicktools Application v1.0\n\n(c) Copyright 2018",IDC_STATIC,25,57,78,32
-    ICON            IDR_MAINFRAME,IDC_STATIC,55,26,18,20
-    GROUPBOX        "",IDC_STATIC,7,7,115,88
-END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// DESIGNINFO
-//
-
-#ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO
-BEGIN
-    IDD_ABOUTBOX, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 180
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 95
-    END
-END
-#endif    // APSTUDIO_INVOKED
 
 
 /////////////////////////////////////////////////////////////////////////////

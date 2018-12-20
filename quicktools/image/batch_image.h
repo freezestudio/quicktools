@@ -27,10 +27,11 @@ namespace freeze
 		return fliped;
 	}
 
-	// use: bpp=channels*8,origin=1
-	// auto buffer[sizeof(BITMAPINFO)+255*sizeof(RGBQUAD)];
-	// auto bitmap_info = static_cast<BITMAPINFO*>(buffer);
-	void fill_bitmap_info(BITMAPINFO* bmi, int width, int height, int bpp, int origin)
+	// use: 
+	//    int   bpp=channels*8,origin=1
+	//    uchar buffer[sizeof(BITMAPINFO) + 0xff * sizeof(RGBQUAD)];
+	//    auto  bmi = static_cast<BITMAPINFO*>(buffer);
+	void fill_bitmap_info(BITMAPINFO* bmi, int width, int height, int bpp, int origin = 1)
 	{
 		CV_Assert(bmi && width >= 0 && height >= 0 && (bpp == 8 || bpp == 24 || bpp == 32));
 
@@ -39,8 +40,10 @@ namespace freeze
 
 		bmih_ptr->biSize = sizeof BITMAPINFOHEADER;
 		bmih_ptr->biWidth = width;
-		bmih_ptr->biHeight = height;
-		bmih_ptr->biPlanes = 1;
+		// 正值表示自下而上的DIB,负值表示自上而下的DIB
+		bmih_ptr->biHeight = -height;
+		bmih_ptr->biPlanes = origin;
+		// must 0,1,4,8,16,24,32
 		bmih_ptr->biBitCount = static_cast<unsigned short>(bpp);
 		bmih_ptr->biCompression = BI_RGB;
 

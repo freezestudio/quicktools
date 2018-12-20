@@ -12,6 +12,7 @@ namespace freeze
 
 		BEGIN_MSG_MAP_EX(CDockingContainer)
 			MSG_WM_CREATE(OnCreate)
+			MESSAGE_HANDLER_EX(WM_OPEN_IMAGE,OnOpenImage)
 			CHAIN_MSG_MAP(WTL::CPaneContainerImpl<CDockingContainer>)
 		END_MSG_MAP()
 
@@ -22,7 +23,7 @@ namespace freeze
 				nullptr,
 				WS_CHILD|WS_VISIBLE|WS_CLIPCHILDREN|LVS_REPORT,
 				WS_EX_CLIENTEDGE);
-			m_Listview.AddColumn(L"序号", 1,80);
+			//m_Listview.AddColumn(L"序号", 1,80);
 			m_Listview.AddColumn(L"工件码", 2,120);
 			m_Listview.AddColumn(L"文件名", 3, 260);
 			m_Listview.AddColumn(L"日期", 4, 120);
@@ -30,6 +31,18 @@ namespace freeze
 			m_Listview.AddColumn(L"检测位置", 6);
 			SetClient(m_Listview);
 
+			SetMsgHandled(FALSE);
+			return 0;
+		}
+
+		LRESULT OnOpenImage(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam)
+		{
+			auto parent = GetParent();
+			if (parent.m_hWnd)
+			{
+				parent.GetParent().SendMessage(WM_OPEN_IMAGE, wParam, lParam);
+			}
+			
 			SetMsgHandled(FALSE);
 			return 0;
 		}

@@ -19,6 +19,9 @@
     <Filter Include="Header Files\pane">
       <UniqueIdentifier>{e72ad88f-e6fa-4b2d-abcb-4ef226a1b5b3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\dlgs">
+      <UniqueIdentifier>{529e8cf9-a5d6-4bc5-be40-705c10b2e2aa}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -61,6 +64,15 @@
     </ClInclude>
     <ClInclude Include="pane\directorybar.h">
       <Filter>Header Files\pane</Filter>
+    </ClInclude>
+    <ClInclude Include="image\utils.h">
+      <Filter>Header Files\image</Filter>
+    </ClInclude>
+    <ClInclude Include="image\image_data.h">
+      <Filter>Header Files\image</Filter>
+    </ClInclude>
+    <ClInclude Include="dlgs\canny_dlg.h">
+      <Filter>Header Files\dlgs</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
