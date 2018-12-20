@@ -184,21 +184,23 @@ public:
 
 		if (m_Bitmap)
 		{
-			//auto map = m_Bitmap.data_clone();
+			//auto map = m_Bitmap.mat_raw_clone();
 			//cv::Mat ret_mat;
 			//cv::Canny(map, ret_mat, m_CannyParam.threshold1, m_CannyParam.threshold2, m_CannyParam.aperture, m_CannyParam.l2);
-			////std::vector<std::vector<cv::Point>> contours;
-			////std::vector<cv::Vec4i> hierarchy;
-			////cv::findContours(ret_mat, contours, hierarchy, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
-			////cv::Scalar color{ 0.0,0.0,255.0,0.0 };
-			////cv::Mat draw_image = cv::Mat::zeros(ret_mat.size(), CV_8UC3);
-			////for (auto i = 0; i < contours.size(); ++i)
-			////{
-			////	cv::drawContours(draw_image, contours, i, color/*, 2, cv::LINE_8, hierarchy, 0*/);
-			////}
-			////m_Bitmap.set_data(draw_image);
-			//m_Bitmap.set_data(ret_mat);
+			//std::vector<std::vector<cv::Point>> contours;
+			//std::vector<cv::Vec4i> hierarchy;
+			//cv::findContours(ret_mat, contours, hierarchy, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
+			//cv::Scalar color{ 0.0,0.0,255.0,0.0 };
+			//cv::Mat draw_image = cv::Mat::zeros(ret_mat.size(), CV_8UC3);
+			//for (auto i = 0; i < contours.size(); ++i)
+			//{
+			//	cv::drawContours(draw_image, contours, i, color/*, 2, cv::LINE_8, hierarchy, 0*/);
+			//}
+			//m_Bitmap.set_data_opera(draw_image);
+			//m_Bitmap.set_data_opera(ret_mat);
+
 			m_Bitmap.canny(m_CannyParam.threshold1, m_CannyParam.threshold2, m_CannyParam.aperture, m_CannyParam.l2);
+
 			ResetBitmap();
 		}
 	}

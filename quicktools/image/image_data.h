@@ -165,20 +165,19 @@ namespace freeze {
 		{
 			// 每次运行，算子数据都需要重置为原始数据的副本
 			reset_data_opera();
-
-			cv::Mat out_mat;
-			cv::Canny(image_data_opera, out_mat, threshold1, threshold2, aperture, l2);
-			//std::vector<std::vector<cv::Point>> contours;
-			//std::vector<cv::Vec4i> hierarchy;
-			//cv::findContours(out_mat, contours, hierarchy, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
-			//cv::Scalar color{ 0.0,0.0,255.0,0.0 };
-			//cv::Mat draw_image = cv::Mat::zeros(out_mat.size(), CV_8UC3);
-			//for (auto i = 0; i < contours.size(); ++i)
-			//{
-			//	cv::drawContours(draw_image, contours, i, color/*, 2, cv::LINE_8, hierarchy, 0*/);
-			//}
-			//set_data_opera(draw_image);
-			set_data_opera(out_mat);
+			
+			cv::Mat ret_mat;
+			cv::Canny(image_data_opera, ret_mat, threshold1, threshold2, aperture, l2);
+			std::vector<std::vector<cv::Point>> contours;
+			std::vector<cv::Vec4i> hierarchy;
+			cv::findContours(ret_mat, contours, hierarchy, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
+			cv::Scalar color{ 0.0,0.0,255.0,0.0 };
+			cv::Mat draw_image = cv::Mat::zeros(ret_mat.size(), CV_8UC3);
+			for (auto i = 0; i < contours.size(); ++i)
+			{
+				cv::drawContours(draw_image, contours, i, color/*, 2, cv::LINE_8, hierarchy, 0*/);
+			}
+			set_data_opera(draw_image);
 		}
 
 		void laplacian()
@@ -384,7 +383,7 @@ namespace freeze {
 			// 原始数据
 			image_data_raw = load_image(image_file, static_cast<int>(flag));
 			// 用于算子的副本
-			image_data_opera = image_data_raw.clone();
+			//image_data_opera = image_data_raw.clone();
 		}
 
 		void from_file_internal_defect(std::string const& image_file, image_type flag)
