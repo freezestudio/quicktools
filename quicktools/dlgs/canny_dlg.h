@@ -1,17 +1,5 @@
 #pragma once
 
-#define WM_CANNY WM_USER + 103
-
-//double threshold1 = 106.0;
-//double threshold2 = 66.0;
-//int    aperture = 3;
-//bool   l2 = false;
-
-#define V_THRESHOLD_1 106
-#define V_THRESHOLD_2 66
-#define V_APERTURE 3
-#define V_L2 false
-
 namespace freeze {
 
 	class CCannyDlg : public ATL::CDialogImpl<CCannyDlg>
@@ -28,6 +16,7 @@ namespace freeze {
 		WTL::CButton m_ResetBtn;
 		WTL::CButton m_ResetRawBtn;
 		WTL::CButton m_NoDefectBtn;
+		HWND m_RecvMsgWnd = nullptr;
 
 		BEGIN_MSG_MAP_EX(CCannyDlg)
 			MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
@@ -35,7 +24,7 @@ namespace freeze {
 			COMMAND_ID_HANDLER(IDCANCEL, OnCloseCmd)
 			COMMAND_ID_HANDLER(ID_RESET_BTN, OnReset)
 			COMMAND_ID_HANDLER_EX(IDC_L2GRADIENT_CHECK, OnGradientCheck)
-			COMMAND_ID_HANDLER_EX(IDC_CHECK_RESET_RAW,OnResetRawCheck)
+			COMMAND_ID_HANDLER_EX(IDC_CHECK_RESET_RAW, OnResetRawCheck)
 			COMMAND_ID_HANDLER_EX(IDC_CHECK_NO_DEFECT, OnNoDefectCheck)
 			MSG_WM_HSCROLL(OnHScroll)
 			MSG_WM_COMMAND(OnCommand)
@@ -45,6 +34,11 @@ namespace freeze {
 		//	LRESULT MessageHandler(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 		//	LRESULT CommandHandler(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 		//	LRESULT NotifyHandler(int /*idCtrl*/, LPNMHDR /*pnmh*/, BOOL& /*bHandled*/)
+
+		void SetRecvMessageWindow(HWND hwnd)
+		{
+			m_RecvMsgWnd = hwnd;
+		}
 
 		LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 		{
@@ -117,58 +111,68 @@ namespace freeze {
 
 		void OnGradientCheck(UINT uNotifyCode, int nID, CWindow wndCtl)
 		{
+			if (!m_RecvMsgWnd)return;
+
 			IDC_L2GRADIENT_CHECK;
 			auto checked = m_L2Gradient.GetCheck() == BST_CHECKED;
 			auto w = MAKEWPARAM(IDC_L2GRADIENT_CHECK, checked ? TRUE : FALSE);
-			GetParent().PostMessage(WM_CANNY, w, 0);
+			::PostMessage(m_RecvMsgWnd, WM_CANNY, w, 0);
 		}
 
 		void OnResetRawCheck(UINT uNotifyCode, int nID, CWindow wndCtl)
 		{
+			if (!m_RecvMsgWnd)return;
 			IDC_CHECK_RESET_RAW;
 			auto checked = m_ResetRawBtn.GetCheck() == BST_CHECKED;
 			auto w = MAKEWPARAM(IDC_CHECK_RESET_RAW, checked ? TRUE : FALSE);
-			GetParent().PostMessage(WM_CANNY, w, 0);
+			::PostMessage(m_RecvMsgWnd, WM_CANNY, w, 0);
 		}
 
 		void OnNoDefectCheck(UINT uNotifyCode, int nID, CWindow wndCtl)
 		{
+			if (!m_RecvMsgWnd)return;
 			IDC_CHECK_NO_DEFECT;
 			auto checked = m_NoDefectBtn.GetCheck() == BST_CHECKED;
 			auto w = MAKEWPARAM(IDC_CHECK_NO_DEFECT, checked ? TRUE : FALSE);
-			GetParent().PostMessage(WM_CANNY, w, 0);
+			::PostMessage(m_RecvMsgWnd, WM_CANNY, w, 0);
 		}
 
 		void OnThreshold1(UINT uNotifyCode)
 		{
+			if (!m_RecvMsgWnd)return;
+
 			IDC_THRESHOLD_EDIT_1;
 			if (EN_CHANGE == uNotifyCode)
 			{
 				auto value = GetDlgItemInt(IDC_THRESHOLD_EDIT_1);
 				auto w = MAKEWPARAM(IDC_THRESHOLD_EDIT_1, value);
-				GetParent().PostMessage(WM_CANNY, w, 0);
+				::PostMessage(m_RecvMsgWnd, WM_CANNY, w, 0);
 			}
 		}
 
 		void OnThreshold2(UINT uNotifyCode)
 		{
+			if (!m_RecvMsgWnd)return;
+
 			IDC_THRESHOLD_EDIT_2;
 			if (EN_CHANGE == uNotifyCode)
 			{
 				auto value = GetDlgItemInt(IDC_THRESHOLD_EDIT_2);
 				auto w = MAKEWPARAM(IDC_THRESHOLD_EDIT_2, value);
-				GetParent().PostMessage(WM_CANNY, w, 0);
+				::PostMessage(m_RecvMsgWnd, WM_CANNY, w, 0);
 			}
 		}
 
 		void OnAperture(UINT uNotifyCode)
 		{
+			if (!m_RecvMsgWnd)return;
+
 			IDC__APERTURE_EDIT;
 			if (EN_CHANGE == uNotifyCode)
 			{
 				auto value = GetDlgItemInt(IDC__APERTURE_EDIT);
 				auto w = MAKEWPARAM(IDC__APERTURE_EDIT, value);
-				GetParent().PostMessage(WM_CANNY, w, 0);
+				::PostMessage(m_RecvMsgWnd, WM_CANNY, w, 0);
 			}
 		}
 
@@ -180,6 +184,8 @@ namespace freeze {
 
 		LRESULT OnReset(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 		{
+			if (!m_RecvMsgWnd)return 0;
+
 			m_Track1.SetPos(V_THRESHOLD_1);
 			m_Track2.SetPos(V_THRESHOLD_2);
 			SetDlgItemInt(IDC_THRESHOLD_EDIT_1, V_THRESHOLD_1);
@@ -188,7 +194,7 @@ namespace freeze {
 			m_L2Gradient.SetCheck(BST_UNCHECKED);
 
 			auto w = MAKEWPARAM(ID_RESET_BTN, 0);
-			GetParent().PostMessage(WM_CANNY, w, 0);
+			::PostMessage(m_RecvMsgWnd, WM_CANNY, w, 0);
 
 			return 0;
 		}

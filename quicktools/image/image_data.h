@@ -1,8 +1,72 @@
 #pragma once
 
+#define V_THRESHOLD_1 106
+#define V_THRESHOLD_2 66
+#define V_APERTURE 3
+#define V_L2 false
+
 // 封装图像数据的类
 
 namespace freeze {
+	inline namespace {
+
+		inline HANDLE g_hEvent=nullptr;
+
+		void init_event()
+		{
+			if (g_hEvent)
+			{
+				CloseHandle(g_hEvent);
+			}
+			g_hEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+			//CloseHandle(g_hEvent);
+		}
+
+		struct CannyParam
+		{
+			double threshold1 = V_THRESHOLD_1;
+			double threshold2 = V_THRESHOLD_2;
+			int    aperture = V_APERTURE;
+			bool   l2 = V_L2;
+		};
+
+		struct CannyWithArrayParam : CannyParam
+		{
+			DWORD idThread;
+			cv::InputArray inArray;
+			cv::InputOutputArray outArray;
+		};
+
+		inline static DWORD CALLBACK AsyncOpera(LPVOID pParam)
+		{
+			CannyWithArrayParam* pCannyParam = reinterpret_cast<CannyWithArrayParam*>(pParam);
+			auto result = WaitForSingleObject(g_hEvent, INFINITE);
+			if (WAIT_OBJECT_0 == result)
+			{
+				cv::Mat ret_mat;
+				cv::Canny(pCannyParam->inArray, ret_mat,
+					pCannyParam->threshold1, pCannyParam->threshold2, pCannyParam->aperture, pCannyParam->l2);
+
+				
+				std::vector<std::vector<cv::Point>> contours;
+				std::vector<cv::Vec4i> hierarchy;
+
+				cv::findContours(ret_mat, contours, hierarchy, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
+				cv::Scalar color{ 0.0,0.0,255.0, };
+
+#pragma omp parallel for
+				for (int i = 0; i < contours.size(); ++i)
+				{
+					cv::drawContours(pCannyParam->outArray, contours, i, color/*, 2, cv::LINE_8, hierarchy, 0*/);
+				}
+
+				//PostThreadMessage(pCannyParam->idThread, WM_CANNY_FINISH, 0, 0);
+				ResetEvent(g_hEvent);
+				return TRUE;
+			}
+			return FALSE;
+		}
+	}
 	template<typename ImageData = WTL::CBitmap>
 	class image_any
 	{
@@ -25,6 +89,7 @@ namespace freeze {
 
 		explicit image_any(std::wstring const& image_file = L"", HDC dc = nullptr, bool auto_convert = true)
 		{
+			init_event();
 			if (!image_file.empty())
 			{
 				from_file(image_file);
@@ -161,23 +226,47 @@ namespace freeze {
 			opera_image.SetDIBits(dc, 0, height(), image_data_opera.data, bitmap_info, DIB_RGB_COLORS);
 		}
 
-		void canny(double threshold1, double threshold2, int aperture, bool l2 = false)
+		void canny(double threshold1, double threshold2, int aperture, bool l2 = false,DWORD thread_id=0)
 		{
+//			// 每次运行，算子数据都需要重置为原始数据的副本
+//			reset_data_opera();
+//
+//			cv::Mat ret_mat;
+//			cv::Canny(image_data_opera, ret_mat, threshold1, threshold2, aperture, l2);
+//			std::vector<std::vector<cv::Point>> contours;
+//			std::vector<cv::Vec4i> hierarchy;
+//			cv::findContours(ret_mat, contours, hierarchy, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
+//			cv::Scalar color{ 0.0,0.0,255.0,0.0 };
+//			//cv::Mat draw_mat = cv::Mat::zeros(ret_mat.size(), CV_8UC3);
+//			//cv::UMat draw_image;
+//			//draw_mat.copyTo(draw_image);
+//			cv::Mat draw_image = cv::Mat::zeros(ret_mat.size(), CV_8UC3);
+//			auto ts = cv::getTickCount();
+//#pragma omp parallel for
+//			for (int i = 0; i < contours.size(); ++i)
+//			{
+//				cv::drawContours(draw_image, contours, i, color/*, 2, cv::LINE_8, hierarchy, 0*/);
+//			}
+//			auto es = cv::getTickCount();
+//			auto times = (es - ts) / cv::getTickFrequency();
+//			//set_data_opera(draw_image.getMat(cv::ACCESS_READ));
+//			set_data_opera(draw_image);
+
 			// 每次运行，算子数据都需要重置为原始数据的副本
 			reset_data_opera();
-			
-			cv::Mat ret_mat;
-			cv::Canny(image_data_opera, ret_mat, threshold1, threshold2, aperture, l2);
-			std::vector<std::vector<cv::Point>> contours;
-			std::vector<cv::Vec4i> hierarchy;
-			cv::findContours(ret_mat, contours, hierarchy, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
-			cv::Scalar color{ 0.0,0.0,255.0,0.0 };
-			cv::Mat draw_image = cv::Mat::zeros(ret_mat.size(), CV_8UC3);
-			for (auto i = 0; i < contours.size(); ++i)
+
+			cv::Mat out_mat = cv::Mat::zeros(image_data_opera.size(), CV_8UC3);
+			CannyWithArrayParam param = {
+				threshold1,threshold2,aperture,l2,
+				thread_id,image_data_opera,out_mat,
+			};
+			SetEvent(g_hEvent);
+			auto hThread = CreateThread(nullptr, 0, AsyncOpera, &param, 0, nullptr);
+			auto result = WaitForSingleObject(hThread, INFINITE);
+			if (WAIT_OBJECT_0 == result)
 			{
-				cv::drawContours(draw_image, contours, i, color/*, 2, cv::LINE_8, hierarchy, 0*/);
+				set_data_opera(out_mat);
 			}
-			set_data_opera(draw_image);
 		}
 
 		void laplacian()

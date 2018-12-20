@@ -34,7 +34,33 @@ extern WTL::CAppModule _Module;
 
 #include <opencv2/opencv.hpp>
 
+#include <omp.h>
 #include <filesystem>
+
+// 自定义消息
+
+// see directorybar.h
+
+// 更改图像目录
+#define WM_DIRECTORY_CHANGED WM_USER + 100
+#define WM_DETECTDIRECTORY_CHANGED + 101
+// 重置列表视图
+#define WM_RESET_LISTVIEW    WM_USER + 102
+
+// see custom_checked_listview.h
+
+// 打开一个图像文件
+#define WM_OPEN_IMAGE WM_USER + 103
+
+// see canny_dlg
+
+// 改变Canny算子参数
+#define WM_CANNY WM_USER + 104
+
+// see image_data.h
+
+// 完成一次Canny算子的运算时
+#define WM_CANNY_FINISH WM_USER + 105
 
 #if defined _M_IX86
   #pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='x86' publicKeyToken='6595b64144ccf1df' language='*'\"")

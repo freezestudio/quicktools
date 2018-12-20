@@ -11,7 +11,6 @@
 
 #define OPEN_IMAGE_THIS 0
 #define OPEN_IMAGE_NEW 1
-#define WM_OPEN_IMAGE WM_USER + 102
 
 namespace freeze {
 	struct ListViewData
@@ -308,13 +307,28 @@ namespace freeze {
 				if (NM_CLICK == pnmh->code || NM_RCLICK == pnmh->code)
 				{
 					auto index = GetSelectedIndex() + 1;
-					auto find = std::find_if(std::begin(m_VecData), std::end(m_VecData), [&index](auto data) {
-						return data.index == index;
-					});
-
-					if (m_VecData.end() != find)
+					if (index > 0)
 					{
-						m_CurrentImageFile = m_CurrentImageDirectory + L"\\" + find->file;
+						auto find = std::find_if(std::begin(m_VecData), std::end(m_VecData), [&index](auto data) {
+							return data.index == index;
+						});
+
+						if (m_VecData.end() != find)
+						{
+							m_CurrentImageFile = m_CurrentImageDirectory + L"\\" + find->file;
+						}
+					}
+					else
+					{
+						// 可能单击的是前面的复选框
+						// TODO: 重载CheckListViewCtrl
+						CPoint pt;
+						GetCursorPos(&pt);
+						m_CheckListViewCtrl.ScreenToClient(&pt);
+						LVHITTESTINFO hitTestInfo = {};
+						hitTestInfo.pt = pt;
+						m_CheckListViewCtrl.HitTest(&hitTestInfo);
+						int item = hitTestInfo.iItem;
 					}
 
 					// 弹出菜单
@@ -332,15 +346,20 @@ namespace freeze {
 					}
 					else
 					{
-						GetParent().SendMessage(WM_OPEN_IMAGE, OPEN_IMAGE_THIS, reinterpret_cast<LPARAM>(m_CurrentImageFile.c_str()));
+						if (!m_CurrentImageFile.empty())
+						{
+							GetParent().SendMessage(WM_OPEN_IMAGE, OPEN_IMAGE_THIS, reinterpret_cast<LPARAM>(m_CurrentImageFile.c_str()));
+						}
 					}
 				}
+
+
+				// TODO: 选择列表项前的复选框时
+				// ... 与菜单项"勾选"相同
+
 			}
 
-			// TODO: 选择列表项前的复选框时
-			// ... 与菜单项"勾选"相同
-
-			// 当选择列表视图中的全选框时
+			// 当选择列表视图标题栏中的全选框时
 			if (auto header = m_CheckListViewCtrl.GetHeader(); header.GetDlgCtrlID()==idCtrl)
 			{
 				HDITEM hdi;

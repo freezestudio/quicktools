@@ -4,14 +4,6 @@
 
 #pragma once
 
-struct CannyParam
-{
-	double threshold1 = V_THRESHOLD_1;
-	double threshold2 = V_THRESHOLD_2;
-	int    aperture = V_APERTURE;
-	bool   l2 = V_L2;
-};
-
 class CView :
 	public WTL::CScrollWindowImpl<CView>
 {
@@ -22,7 +14,7 @@ public:
 	// TODO: 临时保存的图像文件名
 	std::wstring m_RawImageFile;
 	// TODO: Canny参数
-	CannyParam m_CannyParam;
+	freeze::CannyParam m_CannyParam;
 
 	BOOL PreTranslateMessage(MSG* pMsg)
 	{

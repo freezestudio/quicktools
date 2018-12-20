@@ -3,8 +3,8 @@
 #define ID_DIRECTORY 0xEE10
 #define ID_DIRECTORY_EDIT 0xEE11
 #define ID_DIRECTORY_BUTTON 0xEE12
-#define WM_DIRECTORY_CHANGED WM_USER+100
-#define WM_RESET_LISTVIEW    WM_USER+101
+#define ID_DETECTDIRECTORY_EDIT 0xEE13
+#define ID_DETECTDIRECTORY_BUTTON 0xEE14
 
 namespace freeze {
 
@@ -14,9 +14,13 @@ namespace freeze {
 	public:
 		DECLARE_WND_CLASS(L"WTL_DirBar");
 
-		WTL::CStatic m_Caption;
+		WTL::CStatic m_Caption;// 目录标签
 		WTL::CEdit m_DirEdit;
 		WTL::CButton m_DirBtn;
+
+		WTL::CEdit m_DetectDirEdit;
+		WTL::CButton m_DetectDirBtn;
+		std::wstring m_StrDetectDir;
 
 		std::wstring GetDirectory() const
 		{
@@ -42,8 +46,9 @@ namespace freeze {
 			MSG_WM_CREATE(OnCreate)
 			MSG_WM_COMMAND(OnCommand)
 			MESSAGE_HANDLER_EX(WM_DIRECTORY_CHANGED, OnDirectoryChanged)
+			MESSAGE_HANDLER_EX(WM_DETECTDIRECTORY_CHANGED, OnDetectDirectoryChanged)
 			//MSG_WM_SIZE(OnSize)
-			END_MSG_MAP()
+		END_MSG_MAP()
 
 		int OnCreate(LPCREATESTRUCT lpCreateStruct)
 		{
@@ -55,17 +60,30 @@ namespace freeze {
 				ID_DIRECTORY);
 			SetMsgHandled(FALSE);
 			m_DirEdit.Create(this->m_hWnd,
-				CRect{61, 0, 300, 20},
+				CRect{61, 0, 240, 20},
 				L"请从右侧按钮选择图像文件目录",
 				WS_CHILD | WS_VISIBLE | WS_DISABLED | WS_CLIPSIBLINGS | ES_LEFT,
 				0UL,
 				ID_DIRECTORY_EDIT);
 			m_DirBtn.Create(this->m_hWnd,
-				CRect{301, 0, 340, 20},
+				CRect{241, 0, 280, 20},
 				L"...",
 				WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | BS_PUSHBUTTON,
 				0UL,
 				ID_DIRECTORY_BUTTON);
+
+			m_DetectDirEdit.Create(this->m_hWnd,
+				CRect{281, 0, 480, 20},
+				L"请选择检测图像文件目录",
+				WS_CHILD | WS_VISIBLE | WS_DISABLED | WS_CLIPSIBLINGS | ES_LEFT,
+				0UL,
+				ID_DETECTDIRECTORY_EDIT);
+			m_DetectDirBtn.Create(this->m_hWnd,
+				CRect{481, 0, 520, 20},
+				L"...",
+				WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | BS_PUSHBUTTON,
+				0UL,
+				ID_DETECTDIRECTORY_BUTTON);
 
 			SetMsgHandled(FALSE);
 			return 0;
@@ -92,6 +110,17 @@ namespace freeze {
 				}
 			}
 			break;
+			case ID_DETECTDIRECTORY_BUTTON:
+			{
+				WTL::CFolderDialog folderDlg;
+				auto result = folderDlg.DoModal();
+				if (IDOK == result)
+				{
+					auto path = folderDlg.GetFolderPath();
+					SendMessage(WM_DETECTDIRECTORY_CHANGED, 0, reinterpret_cast<LPARAM>(path));
+				}
+			}
+			break;
 			default:
 				break;
 			}
@@ -103,6 +132,14 @@ namespace freeze {
 			m_DirEdit.SetWindowText(reinterpret_cast<LPCTSTR>(lParam));
 			auto dir = GetDirectory();
 			ResetListView(dir);
+			return 0;
+		}
+
+		LRESULT OnDetectDirectoryChanged(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam)
+		{
+
+			m_DetectDirEdit.SetWindowText(reinterpret_cast<LPCTSTR>(lParam));
+			m_StrDetectDir = reinterpret_cast<LPCWSTR>(lParam);
 			return 0;
 		}
 	};

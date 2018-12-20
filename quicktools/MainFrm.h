@@ -155,6 +155,7 @@ public:
 
 		// Ëã×Ó¶Ô»°¿ò
 		m_CannyDlg.Create(this->m_hWnd);
+		m_CannyDlg.SetRecvMessageWindow(this->m_hWnd);
 
 		return 0;
 	}
