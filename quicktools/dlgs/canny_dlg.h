@@ -40,6 +40,11 @@ namespace freeze {
 			m_RecvMsgWnd = hwnd;
 		}
 
+		void SetDetectChecked(bool check = true)
+		{
+			m_NoDefectBtn.SetCheck(check ? BST_CHECKED:BST_UNCHECKED);
+		}
+
 		LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 		{
 			CenterWindow(GetParent());

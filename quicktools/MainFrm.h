@@ -74,7 +74,7 @@ public:
 		COMMAND_RANGE_HANDLER_EX(ID_WINDOW_TABFIRST, ID_WINDOW_TABLAST, OnWindowActivate)
 		MESSAGE_HANDLER_EX(WM_OPEN_IMAGE, OnOpenImage)
 		MESSAGE_HANDLER_EX(WM_OPEN_IMAGE_WITH_DETECT, OnOpenImageWithDetect)
-		MESSAGE_HANDLER_EX(WM_CANNY, OnCanny)
+		MESSAGE_HANDLER_EX(WM_CANNY, OnCannyHandler)
 		CHAIN_MSG_MAP(WTL::CUpdateUI<CMainFrame>)
 		CHAIN_MSG_MAP(WTL::CFrameWindowImpl<CMainFrame>)
 		END_MSG_MAP()
@@ -184,7 +184,7 @@ public:
 	}
 
 	// CannyËã×Ó²ÎÊý
-	LRESULT OnCanny(UINT uMsg, WPARAM wParam, LPARAM lParam)
+	LRESULT OnCannyHandler(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		if (m_pActiveView)
 		{
@@ -339,6 +339,7 @@ public:
 	void OnCanny(UINT /*uNotifyCode*/, int /*nID*/, CWindow /*wndCtl*/)
 	{
 		m_CannyDlg.ShowWindow(SW_SHOW);
+		m_CannyDlg.SetDetectChecked(!m_DetectImage.empty());
 		if (m_pActiveView)
 		{
 			m_pActiveView->PostMessage(WM_CANNY, 0, 0);
