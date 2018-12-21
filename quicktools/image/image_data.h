@@ -505,6 +505,7 @@ namespace freeze {
 		cv::Mat image_data_raw;
 		cv::Mat image_data_opera;
 		cv::Mat image_data_defect;
+		cv::Mat image_data_ref; // 固定的参考图像的数据
 
 		ImageData opera_image; // 算子图像
 		ImageData raw_image; // 原始图像

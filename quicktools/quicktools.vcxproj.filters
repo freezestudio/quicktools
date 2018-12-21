@@ -56,9 +56,6 @@
     <ClInclude Include="pane\custom_checked_listview.h">
       <Filter>Header Files\pane</Filter>
     </ClInclude>
-    <ClInclude Include="pane\dockpane.h">
-      <Filter>Header Files\pane</Filter>
-    </ClInclude>
     <ClInclude Include="pane\searchbar.h">
       <Filter>Header Files\pane</Filter>
     </ClInclude>
@@ -73,6 +70,12 @@
     </ClInclude>
     <ClInclude Include="dlgs\canny_dlg.h">
       <Filter>Header Files\dlgs</Filter>
+    </ClInclude>
+    <ClInclude Include="pane\dock_listview_pane.h">
+      <Filter>Header Files\pane</Filter>
+    </ClInclude>
+    <ClInclude Include="pane\dock_opera_pane.h">
+      <Filter>Header Files\pane</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

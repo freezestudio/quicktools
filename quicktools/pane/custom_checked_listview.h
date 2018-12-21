@@ -109,6 +109,14 @@ namespace freeze {
 		//TODO: 是否有参考图像
 		bool m_HasRefImage = false;
 
+		//// 设置接收打开图像消息的窗口
+		//HWND m_RecvOpenImageMsgWnd = nullptr;
+
+		//void SetRecvOpenImageMessageWindow(HWND hWnd)
+		//{
+		//	m_RecvOpenImageMsgWnd = hWnd;
+		//}
+
 		void AddColumn(std::wstring const& label, int index, int width = 0)
 		{
 			if (m_CheckListViewCtrl.IsWindow())
@@ -389,18 +397,23 @@ namespace freeze {
 		// 当用户勾选了某个项时
 		LRESULT OnListViewItemChecked(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/)
 		{
+			if (!m_CheckListViewCtrl)return 0;
+
 			SetSelectedItem(static_cast<int>(wParam));
 			NMHDR nmh = {};
 			nmh.hwndFrom = m_CheckListViewCtrl;
 			nmh.idFrom = ID_CHECKED_LISTVIEW;
 			nmh.code = NM_CLICK;
 			OnNotify(ID_CHECKED_LISTVIEW, &nmh);
+
 			return 0;
 		}
 
 
 		LRESULT OnNotify(int idCtrl, LPNMHDR pnmh)
 		{
+			if (!m_CheckListViewCtrl)return 0;
+
 			// 选择列表项时
 			if (ID_CHECKED_LISTVIEW == idCtrl)
 			{
@@ -465,11 +478,11 @@ namespace freeze {
 					{
 						if (!m_CurrentImageFile.empty())
 						{
-							auto docking_ontainer = GetParent();
-							if (docking_ontainer)
+							auto docking_container = GetParent();
+							if (docking_container)
 							{
-								docking_ontainer.SendMessage(WM_OPEN_IMAGE_WITH_DETECT, OPEN_IMAGE_THIS, reinterpret_cast<LPARAM>(m_CurrentDetectImageFile.c_str()));
-								docking_ontainer.SendMessage(WM_OPEN_IMAGE, OPEN_IMAGE_THIS, reinterpret_cast<LPARAM>(m_CurrentImageFile.c_str()));
+								docking_container.SendMessage(WM_OPEN_IMAGE_WITH_DETECT, OPEN_IMAGE_THIS, reinterpret_cast<LPARAM>(m_CurrentDetectImageFile.c_str()));
+								docking_container.SendMessage(WM_OPEN_IMAGE, OPEN_IMAGE_THIS, reinterpret_cast<LPARAM>(m_CurrentImageFile.c_str()));
 							}
 						}
 					}
@@ -485,19 +498,28 @@ namespace freeze {
 			if (auto header = m_CheckListViewCtrl.GetHeader(); header.GetDlgCtrlID() == idCtrl)
 			{
 				HDITEM hdi;
-				if (header.GetItem(0, &hdi))
+				try
 				{
-					if ((hdi.fmt & HDF_CHECKED) != 0)
+					// Release版，这里会异常
+					if (header && header.GetItem(0, &hdi))
 					{
-						// 全选
+						if ((hdi.fmt & HDF_CHECKED) != 0)
+						{
+							// 全选
+						}
+						else
+						{
+							// 取消全选
+						}
 					}
-					else
-					{
-						// 取消全选
-					}
+				}
+				catch (const std::exception& e)
+				{
+					MessageBoxA(nullptr, e.what(),"",MB_OK);
 				}
 			}
 
+			SetMsgHandled(FALSE);
 			return 0;
 		}
 

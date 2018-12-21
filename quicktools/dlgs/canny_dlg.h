@@ -9,13 +9,18 @@ namespace freeze {
 
 		WTL::CTrackBarCtrl m_Track1;
 		WTL::CTrackBarCtrl m_Track2;
+
 		WTL::CEdit m_Threshold1;
 		WTL::CEdit m_Threshold2;
 		WTL::CEdit m_Aperture;
-		WTL::CButton m_L2Gradient;
-		WTL::CButton m_ResetBtn;
-		WTL::CButton m_ResetRawBtn;
-		WTL::CButton m_NoDefectBtn;
+
+		WTL::CButton m_L2Gradient; //L2梯度
+		WTL::CButton m_ResetBtn; // 重置
+		WTL::CButton m_ResetRawBtn; // 只显示原始图像
+		WTL::CButton m_NoDefectBtn; // 显示检测图像
+		WTL::CButton m_ResetRefBtn; // 参考图像
+
+		// 接收此对话框发出的消息的窗口
 		HWND m_RecvMsgWnd = nullptr;
 
 		BEGIN_MSG_MAP_EX(CCannyDlg)
@@ -26,6 +31,7 @@ namespace freeze {
 			COMMAND_ID_HANDLER_EX(IDC_L2GRADIENT_CHECK, OnGradientCheck)
 			COMMAND_ID_HANDLER_EX(IDC_CHECK_RESET_RAW, OnResetRawCheck)
 			COMMAND_ID_HANDLER_EX(IDC_CHECK_NO_DEFECT, OnNoDefectCheck)
+			COMMAND_ID_HANDLER_EX(IDC_CHECK_REF_IMAGE, OnResetRefCheck)
 			MSG_WM_HSCROLL(OnHScroll)
 			MSG_WM_COMMAND(OnCommand)
 		END_MSG_MAP()
@@ -66,6 +72,7 @@ namespace freeze {
 			m_ResetBtn.Attach(GetDlgItem(ID_RESET_BTN));
 			m_ResetRawBtn.Attach(GetDlgItem(IDC_CHECK_RESET_RAW));
 			m_NoDefectBtn.Attach(GetDlgItem(IDC_CHECK_NO_DEFECT));
+			m_ResetRefBtn.Attach(GetDlgItem(IDC_CHECK_REF_IMAGE));
 
 			return TRUE;
 		}
@@ -139,6 +146,15 @@ namespace freeze {
 			IDC_CHECK_NO_DEFECT;
 			auto checked = m_NoDefectBtn.GetCheck() == BST_CHECKED;
 			auto w = MAKEWPARAM(IDC_CHECK_NO_DEFECT, checked ? TRUE : FALSE);
+			::PostMessage(m_RecvMsgWnd, WM_CANNY, w, 0);
+		}
+
+		void OnResetRefCheck(UINT uNotifyCode, int nID, CWindow wndCtl)
+		{
+			if (!m_RecvMsgWnd)return;
+			IDC_CHECK_REF_IMAGE;
+			auto checked = m_ResetRefBtn.GetCheck() == BST_CHECKED;
+			auto w = MAKEWPARAM(IDC_CHECK_REF_IMAGE, checked ? TRUE : FALSE);
 			::PostMessage(m_RecvMsgWnd, WM_CANNY, w, 0);
 		}
 

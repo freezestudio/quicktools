@@ -2,11 +2,11 @@
 
 namespace freeze
 {
-	class CDockingContainer :
-		public WTL::CPaneContainerImpl<CDockingContainer>
+	class CDockingListViewContainer :
+		public WTL::CPaneContainerImpl<CDockingListViewContainer>
 	{
 	public:
-		DECLARE_WND_CLASS_EX(_T("WTL_DockingContainer"), 0, -1)
+		DECLARE_WND_CLASS_EX(_T("WTL_Docking_ListView_Container"), 0, -1)
 
 		// 自定义列表视图
 		freeze::CCustomCheckedListview m_Listview;
@@ -15,7 +15,7 @@ namespace freeze
 			MSG_WM_CREATE(OnCreate)
 			MESSAGE_HANDLER_EX(WM_OPEN_IMAGE,OnOpenImage)
 			MESSAGE_HANDLER_EX(WM_OPEN_IMAGE_WITH_DETECT, OnOpenImageWithDetect)
-			CHAIN_MSG_MAP(WTL::CPaneContainerImpl<CDockingContainer>)
+			CHAIN_MSG_MAP(WTL::CPaneContainerImpl<CDockingListViewContainer>)
 		END_MSG_MAP()
 
 		int OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -42,7 +42,7 @@ namespace freeze
 			auto splitter = GetParent();
 			if (splitter.m_hWnd)
 			{
-				auto main_frame = splitter.GetParent();
+				auto main_frame = splitter.GetParent().GetParent();
 				if (main_frame)
 				{
 					main_frame.SendMessage(WM_OPEN_IMAGE, wParam, lParam);

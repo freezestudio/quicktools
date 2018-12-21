@@ -20,10 +20,12 @@ public:
 
 	WTL::CCommandBarCtrl m_CmdBar;
 
-	// splitter[tabview,pane]
+	// splitter[tabview,splitter[listview_pane,opear_pane]]
 	WTL::CSplitterWindow m_SplitterWindow;
 	WTL::CTabView m_TabView;
-	freeze::CDockingContainer m_PaneContainer;
+	WTL::CHorSplitterWindow m_PaneSplitter;
+	freeze::CDockingListViewContainer m_PaneListViewContainer;
+	freeze::CDockingOperaContainer    m_PaneOperaContainer;
 
 	std::map<std::wstring, int> m_mapImageFileView;
 	std::wstring m_ActivedImage; // 活动视图关联的原始图像
@@ -77,7 +79,7 @@ public:
 		MESSAGE_HANDLER_EX(WM_CANNY, OnCannyHandler)
 		CHAIN_MSG_MAP(WTL::CUpdateUI<CMainFrame>)
 		CHAIN_MSG_MAP(WTL::CFrameWindowImpl<CMainFrame>)
-		END_MSG_MAP()
+	END_MSG_MAP()
 
 	// Handler prototypes (uncomment arguments if needed):
 	//	LRESULT MessageHandler(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
@@ -250,6 +252,11 @@ public:
 	LRESULT OnOpenImageWithDetect(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam)
 	{
 		m_DetectImage = reinterpret_cast<wchar_t*>(lParam);
+		if (m_CannyDlg)
+		{
+			m_CannyDlg.SetDetectChecked(!m_DetectImage.empty());
+		}
+
 		return 0;
 	}
 
@@ -339,7 +346,7 @@ public:
 	void OnCanny(UINT /*uNotifyCode*/, int /*nID*/, CWindow /*wndCtl*/)
 	{
 		m_CannyDlg.ShowWindow(SW_SHOW);
-		m_CannyDlg.SetDetectChecked(!m_DetectImage.empty());
+
 		if (m_pActiveView)
 		{
 			m_pActiveView->PostMessage(WM_CANNY, 0, 0);
@@ -361,7 +368,7 @@ public:
 	// Listview Pane -> “X”
 	void OnListviewPaneClose(UINT /*uNotifyCode*/, int /*nID*/, CWindow wndCtl)
 	{
-		if (wndCtl.m_hWnd == m_PaneContainer.m_hWnd)
+		if (wndCtl.m_hWnd == m_PaneListViewContainer.m_hWnd)
 		{
 			m_SplitterWindow.SetSinglePaneMode(SPLIT_PANE_LEFT);
 			UISetCheck(ID_VIEW_LISTVIEWBAR, FALSE);
@@ -370,6 +377,7 @@ public:
 
 	void CreatePaneContainer()
 	{
+		// 默认入到左侧分割窗口
 		m_TabView.Create(
 			this->m_hWndClient,
 			rcDefault,
@@ -378,22 +386,37 @@ public:
 			0//WS_EX_CLIENTEDGE
 		);
 
-		m_PaneContainer.SetPaneContainerExtendedStyle(PANECNT_NOBORDER);
-		m_PaneContainer.Create(this->m_hWndClient, L"图像分类");
+		// 默认放到右侧分割窗口
 
-		CRect rcSplit;
-		GetClientRect(rcSplit);
-		m_SplitterWindow.SetSplitterRect(rcSplit);
+		// 再次分割(垂直)
+		m_PaneSplitter.Create(
+			this->m_hWndClient,
+			rcDefault,
+			NULL,
+			WS_CHILD|WS_VISIBLE|WS_CLIPSIBLINGS|WS_CLIPCHILDREN
+		);
+
+		// 两容器放置到垂直分割窗口中
+
+		m_PaneListViewContainer.SetPaneContainerExtendedStyle(PANECNT_NOBORDER);
+		m_PaneListViewContainer.Create(this->m_PaneSplitter, L"图像分类");
+
+		m_PaneOperaContainer.SetPaneContainerExtendedStyle(PANECNT_NOBORDER);
+		m_PaneOperaContainer.Create(this->m_PaneSplitter, L"运算组合");
+
+		m_PaneSplitter.SetSplitterPanes(m_PaneListViewContainer, m_PaneOperaContainer);
+		m_PaneSplitter.SetSplitterPosPct(50); // 占50%
 
 		if (m_dwDock == PANE_DOCK_LEFT)
 		{
-			m_SplitterWindow.SetSplitterPanes(m_PaneContainer, m_TabView);
-			m_SplitterWindow.SetSplitterPos(DEFAULT_PANE_WIDTH);
+			m_SplitterWindow.SetSplitterPanes(m_PaneSplitter, m_TabView);
 		}
 		else if (m_dwDock == PANE_DOCK_RIGHT)
 		{
-			m_SplitterWindow.SetSplitterPanes(m_TabView, m_PaneContainer);
-			m_SplitterWindow.SetSplitterPos(rcSplit.Width() - DEFAULT_PANE_WIDTH);
+			m_SplitterWindow.SetSplitterPanes(m_TabView, m_PaneSplitter);
 		}
+
+		UpdateLayout();
+		m_SplitterWindow.SetSplitterPosPct(75);
 	}
 };

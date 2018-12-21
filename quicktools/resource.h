@@ -18,6 +18,8 @@
 #define IDC_CHECK_RESET_RAW             1006
 #define IDC_CHECK1                      1007
 #define IDC_CHECK_NO_DEFECT             1007
+#define IDC_CHECK2                      1008
+#define IDC_CHECK_REF_IMAGE             1008
 #define ID_WINDOW_CLOSE                 32772
 #define ID_WINDOW_CLOSE_ALL             32773
 #define ID_CLV_32776                    32776
@@ -38,7 +40,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        208
 #define _APS_NEXT_COMMAND_VALUE         32787
-#define _APS_NEXT_CONTROL_VALUE         1008
+#define _APS_NEXT_CONTROL_VALUE         1009
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
