@@ -115,9 +115,9 @@ namespace freeze {
 		}
 
 		// È±ÏÝÍ¼ÏñÎÄ¼þ
-		void defect_file(std::wstring const& defect_file, image_type flag = image_type::IMREAD_COLOR)
+		void defect_file(std::wstring const& defectfile, image_type flag = image_type::IMREAD_COLOR)
 		{
-			auto file = convert_from(defect_file);
+			auto file = convert_from(defectfile);
 			from_file_internal_defect(file, flag);
 		}
 

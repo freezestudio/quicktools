@@ -18,13 +18,16 @@ class CMainFrame :
 public:
 	DECLARE_FRAME_WND_CLASS(NULL, IDR_MAINFRAME)
 
+	WTL::CCommandBarCtrl m_CmdBar;
+
+	// splitter[tabview,pane]
 	WTL::CSplitterWindow m_SplitterWindow;
 	WTL::CTabView m_TabView;
-	WTL::CCommandBarCtrl m_CmdBar;
 	freeze::CDockingContainer m_PaneContainer;
 
 	std::map<std::wstring, int> m_mapImageFileView;
-	std::wstring m_ActivedImage;
+	std::wstring m_ActivedImage; // 活动视图关联的原始图像
+	std::wstring m_DetectImage;  // 关联的检测图像
 
 	DWORD m_dwDock = PANE_DOCK_RIGHT;
 	int m_PaneWidth = DEFAULT_PANE_WIDTH;
@@ -50,6 +53,7 @@ public:
 	BEGIN_UPDATE_UI_MAP(CMainFrame)
 		UPDATE_ELEMENT(ID_VIEW_TOOLBAR, UPDUI_MENUPOPUP)
 		UPDATE_ELEMENT(ID_VIEW_STATUS_BAR, UPDUI_MENUPOPUP)
+		UPDATE_ELEMENT(ID_VIEW_LISTVIEWBAR, UPDUI_MENUPOPUP)
 	END_UPDATE_UI_MAP()
 
 	BEGIN_MSG_MAP_EX(CMainFrame)
@@ -59,6 +63,8 @@ public:
 		COMMAND_ID_HANDLER_EX(ID_FILE_NEW, OnFileNew)
 		COMMAND_ID_HANDLER_EX(ID_VIEW_TOOLBAR, OnViewToolBar)
 		COMMAND_ID_HANDLER_EX(ID_VIEW_STATUS_BAR, OnViewStatusBar)
+		COMMAND_ID_HANDLER_EX(ID_VIEW_LISTVIEWBAR, OnViewListviewBar)
+		COMMAND_ID_HANDLER_EX(ID_PANE_CLOSE, OnListviewPaneClose)
 		COMMAND_ID_HANDLER_EX(ID_APP_ABOUT, OnAppAbout)
 		COMMAND_ID_HANDLER_EX(ID_WINDOW_CLOSE, OnWindowClose)
 		COMMAND_ID_HANDLER_EX(ID_WINDOW_CLOSE_ALL, OnWindowCloseAll)
@@ -67,10 +73,11 @@ public:
 		COMMAND_ID_HANDLER_EX(ID_OPERATOR_SOBEL, OnSobel)
 		COMMAND_RANGE_HANDLER_EX(ID_WINDOW_TABFIRST, ID_WINDOW_TABLAST, OnWindowActivate)
 		MESSAGE_HANDLER_EX(WM_OPEN_IMAGE, OnOpenImage)
-		MESSAGE_HANDLER_EX(WM_CANNY,OnCanny)
+		MESSAGE_HANDLER_EX(WM_OPEN_IMAGE_WITH_DETECT, OnOpenImageWithDetect)
+		MESSAGE_HANDLER_EX(WM_CANNY, OnCanny)
 		CHAIN_MSG_MAP(WTL::CUpdateUI<CMainFrame>)
 		CHAIN_MSG_MAP(WTL::CFrameWindowImpl<CMainFrame>)
-	END_MSG_MAP()
+		END_MSG_MAP()
 
 	// Handler prototypes (uncomment arguments if needed):
 	//	LRESULT MessageHandler(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
@@ -141,8 +148,9 @@ public:
 		CreatePaneContainer();
 
 		UIAddToolBar(hWndToolBar);
-		UISetCheck(ID_VIEW_TOOLBAR, 1);
-		UISetCheck(ID_VIEW_STATUS_BAR, 1);
+		UISetCheck(ID_VIEW_TOOLBAR, TRUE);
+		UISetCheck(ID_VIEW_STATUS_BAR, TRUE);
+		UISetCheck(ID_VIEW_LISTVIEWBAR, TRUE);
 
 		// register object for message filtering and idle updates
 		WTL::CMessageLoop* pLoop = _Module.GetMessageLoop();
@@ -207,6 +215,7 @@ public:
 		PostMessage(WM_CLOSE);
 	}
 
+	// 请求打开一个图像文件
 	LRESULT OnOpenImage(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam)
 	{
 		m_ActivedImage = reinterpret_cast<wchar_t*>(lParam);
@@ -230,12 +239,17 @@ public:
 				//AddImageFileView(m_ActivedImage, page);
 				OnWindowClose(0, 0, nullptr);
 			}
-			OnFileNew(0, 0, nullptr);
 		}
-		else
-		{
-			OnFileNew(0, 0, nullptr);
-		}
+
+		OnFileNew(0, 0, nullptr);
+
+		return 0;
+	}
+
+	// 请求打开一个图像文件并且附带了检测图像
+	LRESULT OnOpenImageWithDetect(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam)
+	{
+		m_DetectImage = reinterpret_cast<wchar_t*>(lParam);
 		return 0;
 	}
 
@@ -250,7 +264,7 @@ public:
 		pView->Create(m_TabView, rcDefault, NULL, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, 0);
 
 		m_TabView.AddPage(pView->m_hWnd, m_ActivedImage.c_str());
-		pView->SetBitmap2(m_ActivedImage);
+		pView->SetBitmap2(m_ActivedImage, m_DetectImage);
 
 		AddImageFileView(m_ActivedImage, m_TabView.GetActivePage());
 	}
@@ -274,6 +288,14 @@ public:
 		::ShowWindow(m_hWndStatusBar, bVisible ? SW_SHOWNOACTIVATE : SW_HIDE);
 		UISetCheck(ID_VIEW_STATUS_BAR, bVisible);
 		WTL::CFrameWindowImpl<CMainFrame>::UpdateLayout();
+	}
+
+	// Menu -> View -> Listview Bar
+	void OnViewListviewBar(UINT /*uNotifyCode*/, int /*nID*/, CWindow /*wndCtl*/)
+	{
+		BOOL bShow = (m_SplitterWindow.GetSinglePaneMode() != SPLIT_PANE_NONE);
+		m_SplitterWindow.SetSinglePaneMode(bShow ? SPLIT_PANE_NONE : SPLIT_PANE_LEFT);
+		UISetCheck(ID_VIEW_LISTVIEWBAR, bShow);
 	}
 
 	// Menu -> Help -> About
@@ -335,6 +357,16 @@ public:
 
 	}
 
+	// Listview Pane -> “X”
+	void OnListviewPaneClose(UINT /*uNotifyCode*/, int /*nID*/, CWindow wndCtl)
+	{
+		if (wndCtl.m_hWnd == m_PaneContainer.m_hWnd)
+		{
+			m_SplitterWindow.SetSinglePaneMode(SPLIT_PANE_LEFT);
+			UISetCheck(ID_VIEW_LISTVIEWBAR, FALSE);
+		}
+	}
+
 	void CreatePaneContainer()
 	{
 		m_TabView.Create(
@@ -345,6 +377,7 @@ public:
 			0//WS_EX_CLIENTEDGE
 		);
 
+		m_PaneContainer.SetPaneContainerExtendedStyle(PANECNT_NOBORDER);
 		m_PaneContainer.Create(this->m_hWndClient, L"图像分类");
 
 		CRect rcSplit;

@@ -30,13 +30,14 @@
 #define ID_OPERATOR_CANNY               32783
 #define ID_OPERATOR_LAPLACIAN           32784
 #define ID_OPERATOR_SOBEL               32785
+#define ID_VIEW_LISTVIEWBAR             32786
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        208
-#define _APS_NEXT_COMMAND_VALUE         32786
+#define _APS_NEXT_COMMAND_VALUE         32787
 #define _APS_NEXT_CONTROL_VALUE         1008
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

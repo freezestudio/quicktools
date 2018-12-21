@@ -180,6 +180,7 @@ BEGIN
     BEGIN
         MENUITEM "&Toolbar",                    ID_VIEW_TOOLBAR
         MENUITEM "&Status Bar",                 ID_VIEW_STATUS_BAR
+        MENUITEM "&Listview Bar",               ID_VIEW_LISTVIEWBAR
     END
     POPUP "&Window"
     BEGIN
@@ -452,6 +453,11 @@ END
 STRINGTABLE
 BEGIN
     ATL_IDS_MRU_FILE        "Open this document"
+END
+
+STRINGTABLE
+BEGIN
+    ID_VIEW_LISTVIEWBAR     "Show or Hide ListviewBar\nSwitch Show|Hide ListviewBar"
 END
 
 #endif    // Ó¢Óï(ÃÀ¹ú) resources

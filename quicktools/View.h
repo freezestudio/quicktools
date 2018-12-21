@@ -45,13 +45,19 @@ public:
 
 	}
 
-	void SetBitmap2(std::wstring const& file, bool auto_scroll = true)
+	void SetBitmap2(std::wstring const& file, std::wstring const& detectfile=L"", bool auto_scroll = true)
 	{
 		// TODO: 企图用于各种算子时动态改变图像
 		m_RawImageFile = file;
 
 		m_Bitmap.from_file(file);
 		m_Bitmap.convert(GetDC());
+
+		if (!detectfile.empty())
+		{
+			m_Bitmap.defect_file(detectfile);
+			m_Bitmap.create_defect_bitmap(GetDC());
+		}
 
 		if (auto_scroll)
 		{

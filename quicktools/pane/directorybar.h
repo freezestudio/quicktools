@@ -6,6 +6,11 @@
 #define ID_DETECTDIRECTORY_EDIT 0xEE13
 #define ID_DETECTDIRECTORY_BUTTON 0xEE14
 
+// 重置原始图像目录
+#define RESET_LISTVIEW_DIR 0
+// 重置检测图像目录
+#define RESET_LISTVIEW_DIR_DETECT 1
+
 namespace freeze {
 
 	class CDirBar :
@@ -36,10 +41,15 @@ namespace freeze {
 			return std::wstring{};
 		}
 
-		void ResetListView(std::wstring const& dir)
+		void ResetListView(std::wstring const& dir,int dir_type = RESET_LISTVIEW_DIR)
 		{
-			auto parent = GetParent();
-			parent.SendMessage(WM_RESET_LISTVIEW, dir.size(), reinterpret_cast<LPARAM>(dir.c_str()));
+			auto w = MAKEWPARAM(dir_type, dir.size());
+
+			auto custom_listview = GetParent();
+			if (custom_listview)
+			{
+				custom_listview.SendMessage(WM_RESET_LISTVIEW, w, reinterpret_cast<LPARAM>(dir.c_str()));
+			}
 		}
 
 		BEGIN_MSG_MAP_EX(CDirBar)
@@ -140,6 +150,8 @@ namespace freeze {
 
 			m_DetectDirEdit.SetWindowText(reinterpret_cast<LPCTSTR>(lParam));
 			m_StrDetectDir = reinterpret_cast<LPCWSTR>(lParam);
+			ResetListView(m_StrDetectDir, RESET_LISTVIEW_DIR_DETECT);
+
 			return 0;
 		}
 	};
