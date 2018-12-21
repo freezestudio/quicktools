@@ -220,5 +220,4 @@ namespace freeze {
 			return 0;
 		}
 	};
-
 }

@@ -100,6 +100,11 @@ namespace freeze {
 			}
 		}
 
+		~image_any()
+		{
+			CloseHandle(g_hEvent);
+		}
+
 		explicit operator bool() const
 		{
 			return !image_data_raw.empty();
@@ -119,6 +124,13 @@ namespace freeze {
 		{
 			auto file = convert_from(defectfile);
 			from_file_internal_defect(file, flag);
+		}
+
+		// 参考图像文件(如果有)
+		void reference_file(std::wstring const& ref_file, image_type flag = image_type::IMREAD_COLOR)
+		{
+			auto file = convert_from(ref_file);
+			from_file_internal_ref(file, flag);
 		}
 
 		void convert(HDC dc, int action = 0)
@@ -226,7 +238,7 @@ namespace freeze {
 			opera_image.SetDIBits(dc, 0, height(), image_data_opera.data, bitmap_info, DIB_RGB_COLORS);
 		}
 
-		void canny(double threshold1, double threshold2, int aperture, bool l2 = false,DWORD thread_id=0)
+		void canny(double threshold1, double threshold2, int aperture, bool l2 = false, bool use_ref = false, DWORD thread_id=0)
 		{
 //			// 每次运行，算子数据都需要重置为原始数据的副本
 //			reset_data_opera();
@@ -257,16 +269,24 @@ namespace freeze {
 
 			cv::Mat out_mat = cv::Mat::zeros(image_data_opera.size(), CV_8UC3);
 			CannyWithArrayParam param = {
-				threshold1,threshold2,aperture,l2,
-				thread_id,image_data_opera,out_mat,
+				threshold1,
+				threshold2,
+				aperture,
+				l2,
+				thread_id,
+				use_ref?image_data_ref:image_data_opera,
+				out_mat,
 			};
+
 			SetEvent(g_hEvent);
+
 			auto hThread = CreateThread(nullptr, 0, AsyncOpera, &param, 0, nullptr);
 			auto result = WaitForSingleObject(hThread, INFINITE);
 			if (WAIT_OBJECT_0 == result)
 			{
 				set_data_opera(out_mat);
 			}
+			CloseHandle(hThread);
 		}
 
 		void laplacian()
@@ -479,6 +499,12 @@ namespace freeze {
 		{
 			// 缺陷数据
 			image_data_defect = load_image(image_file, static_cast<int>(flag));
+		}
+
+		void from_file_internal_ref(std::string const& image_file, image_type flag)
+		{
+			// 参考数据
+			image_data_ref = load_image(image_file, static_cast<int>(flag));
 		}
 
 		void reset_opera_image()
