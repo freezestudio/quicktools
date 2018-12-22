@@ -39,7 +39,7 @@ namespace freeze {
 
 		BEGIN_MSG_MAP_EX(CMyCheckedListViewCtrl)
 			CHAIN_MSG_MAP(WTL::CCheckListViewCtrlImpl<CMyCheckedListViewCtrl>)
-		END_MSG_MAP()
+			END_MSG_MAP()
 
 		void CheckSelectedItems(int nCurrItem)
 		{
@@ -163,7 +163,19 @@ namespace freeze {
 				m_CheckListViewCtrl.SetItemText(item, 4, data.time.c_str());
 				m_CheckListViewCtrl.SetItemText(item, 5, data.loc.c_str());
 			}
+		}
 
+		void InsertItems(int group_id, std::vector<ListViewData> const& data, std::size_t start = 0)
+		{
+			if (!m_CheckListViewCtrl.IsWindow())return;
+
+			m_CheckListViewCtrl.SetItemCount(data.size() - start);
+			m_CheckListViewCtrl.SendMessage(WM_SETREDRAW, FALSE);
+			for (auto i = start; i < m_VecData.size(); ++i)
+			{
+				InsertItem(i, group_id, data[i]);
+			}
+			m_CheckListViewCtrl.SendMessage(WM_SETREDRAW, TRUE);
 		}
 
 		int GetSelectedIndex() const
@@ -215,7 +227,7 @@ namespace freeze {
 			return false;
 		}
 
-		void ResetListView(std::wstring const& dir,int dir_type = RESET_LISTVIEW_DIR)
+		void ResetListView(std::wstring const& dir, int dir_type = RESET_LISTVIEW_DIR)
 		{
 			if (dir_type == RESET_LISTVIEW_DIR_DETECT)
 			{
@@ -248,10 +260,11 @@ namespace freeze {
 
 				InsertItem(0, 1, m_VecData[0]);
 
-				for (auto i = 1; i < m_VecData.size() - 1; ++i)
-				{
-					InsertItem(i, 2, m_VecData[i]);
-				}
+				//for (auto i = 1; i < m_VecData.size(); ++i)
+				//{
+				//	InsertItem(i, 2, m_VecData[i]);
+				//}
+				InsertItems(2, m_VecData, 1);
 			}
 			else
 			{
@@ -261,12 +274,12 @@ namespace freeze {
 				group.mask = LVGF_HEADER | LVGF_GROUPID;
 				auto success = m_CheckListViewCtrl.AddGroup(&group);
 
-				for (auto i = 0; i < m_VecData.size() - 1; ++i)
-				{
-					InsertItem(i, 1, m_VecData[i]);
-				}
+				//for (auto i = 0; i < m_VecData.size(); ++i)
+				//{
+				//	InsertItem(i, 1, m_VecData[i]);
+				//}
+				InsertItems(1, m_VecData);
 			}
-
 		}
 
 		void ReadImageFiles(std::wstring const& dir)
@@ -337,7 +350,7 @@ namespace freeze {
 			MSG_WM_NOTIFY(OnNotify)
 			MSG_WM_DROPFILES(OnDropFiles)
 			MSG_WM_COMMAND(OnCommand)
-		END_MSG_MAP()
+			END_MSG_MAP()
 
 		int OnCreate(LPCREATESTRUCT lpCreateStruct)
 		{
@@ -402,7 +415,7 @@ namespace freeze {
 			auto dir = std::wstring{ pDir,size };
 			delete[] pDir;
 
-			ResetListView(dir,dir_type);
+			ResetListView(dir, dir_type);
 
 			return 0;
 		}
@@ -440,7 +453,7 @@ namespace freeze {
 
 						auto find = std::find_if(std::begin(m_VecData), std::end(m_VecData), [&index](auto data) {
 							return data.index == (index + 1);
-						});
+							});
 
 						if (m_VecData.end() != find)
 						{
@@ -453,7 +466,7 @@ namespace freeze {
 							// 总长度是37，返回的是36
 							auto pos = detect_file.find_last_of(L".tiff");
 							// 替换的起始位置，替换多长
-							detect_file.replace(pos-4, 5, L".bmp");
+							detect_file.replace(pos - 4, 5, L".bmp");
 							m_CurrentDetectImageFile = m_CurrentDetectImageDirectory + L"\\" + detect_file;
 						}
 						else
@@ -528,7 +541,7 @@ namespace freeze {
 				}
 				catch (const std::exception& e)
 				{
-					MessageBoxA(nullptr, e.what(),"",MB_OK);
+					MessageBoxA(nullptr, e.what(), "", MB_OK);
 				}
 			}
 
