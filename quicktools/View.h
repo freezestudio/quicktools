@@ -197,7 +197,12 @@ public:
 			//m_Bitmap.set_data_opera(draw_image);
 			//m_Bitmap.set_data_opera(ret_mat);
 
-			m_Bitmap.canny(m_CannyParam.threshold1, m_CannyParam.threshold2, m_CannyParam.aperture, m_CannyParam.l2);
+			m_Bitmap.canny(
+				m_CannyParam.threshold1, 
+				m_CannyParam.threshold2, 
+				m_CannyParam.aperture, 
+				m_CannyParam.l2
+			);
 
 			ResetBitmap();
 		}

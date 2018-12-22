@@ -10,18 +10,6 @@
 namespace freeze {
 	inline namespace {
 
-		inline HANDLE g_hEvent=nullptr;
-
-		void init_event()
-		{
-			if (g_hEvent)
-			{
-				CloseHandle(g_hEvent);
-			}
-			g_hEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
-			//CloseHandle(g_hEvent);
-		}
-
 		struct CannyParam
 		{
 			double threshold1 = V_THRESHOLD_1;
@@ -32,7 +20,7 @@ namespace freeze {
 
 		struct CannyWithArrayParam : CannyParam
 		{
-			DWORD idThread;
+			HANDLE hEvent;
 			cv::InputArray inArray;
 			cv::InputOutputArray outArray;
 		};
@@ -40,7 +28,7 @@ namespace freeze {
 		inline static DWORD CALLBACK AsyncOpera(LPVOID pParam)
 		{
 			CannyWithArrayParam* pCannyParam = reinterpret_cast<CannyWithArrayParam*>(pParam);
-			auto result = WaitForSingleObject(g_hEvent, INFINITE);
+			auto result = WaitForSingleObject(pCannyParam->hEvent, INFINITE);
 			if (WAIT_OBJECT_0 == result)
 			{
 				cv::Mat ret_mat;
@@ -61,7 +49,7 @@ namespace freeze {
 				}
 
 				//PostThreadMessage(pCannyParam->idThread, WM_CANNY_FINISH, 0, 0);
-				ResetEvent(g_hEvent);
+				ResetEvent(pCannyParam->hEvent);
 				return TRUE;
 			}
 			return FALSE;
@@ -102,7 +90,7 @@ namespace freeze {
 
 		~image_any()
 		{
-			CloseHandle(g_hEvent);
+			CloseHandle(opear_event);
 		}
 
 		explicit operator bool() const
@@ -268,18 +256,18 @@ namespace freeze {
 			reset_data_opera();
 
 			cv::Mat out_mat = cv::Mat::zeros(image_data_opera.size(), CV_8UC3);
+
+			SetEvent(opear_event);
+
 			CannyWithArrayParam param = {
 				threshold1,
 				threshold2,
 				aperture,
 				l2,
-				thread_id,
+				opear_event,
 				use_ref?image_data_ref:image_data_opera,
 				out_mat,
 			};
-
-			SetEvent(g_hEvent);
-
 			auto hThread = CreateThread(nullptr, 0, AsyncOpera, &param, 0, nullptr);
 			auto result = WaitForSingleObject(hThread, INFINITE);
 			if (WAIT_OBJECT_0 == result)
@@ -521,6 +509,19 @@ namespace freeze {
 			{
 				defect_image.DeleteObject();
 			}
+		}
+
+	private:
+		HANDLE opear_event = nullptr;
+
+		void init_event()
+		{
+			if (opear_event)
+			{
+				CloseHandle(opear_event);
+			}
+			opear_event = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+			//CloseHandle(opear_event);
 		}
 
 	private:

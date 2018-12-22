@@ -15,6 +15,9 @@
 #define OPEN_IMAGE_NEW 1
 
 namespace freeze {
+	//
+	// 图像信息列表项
+	//
 	struct ListViewData
 	{
 		int index;
@@ -25,6 +28,9 @@ namespace freeze {
 		std::wstring loc;
 	};
 
+	//
+	// 继承的带复选框的列表视图
+	//
 	class CMyCheckedListViewCtrl :
 		public WTL::CCheckListViewCtrlImpl<CMyCheckedListViewCtrl>
 	{
@@ -137,13 +143,13 @@ namespace freeze {
 			}
 		}
 
-		void InsertItem(int item, int id, ListViewData const& data)
+		void InsertItem(int item, int group_id, ListViewData const& data)
 		{
 			LVITEM lv = { };
-			lv.mask = LVIF_GROUPID;
+			lv.mask = /*LVIF_TEXT |*/ LVIF_GROUPID;
 			lv.iItem = item;
-			lv.iSubItem = 0;
-			lv.iGroupId = id;
+			lv.iSubItem = 0; // 0 -- 表示此结构的其它成员将要描述的是该项的信息。
+			lv.iGroupId = group_id;
 			//lv.pszText = const_cast<wchar_t*>(std::to_wstring(data.index).c_str());
 
 			if (m_CheckListViewCtrl.IsWindow())
@@ -325,6 +331,7 @@ namespace freeze {
 		BEGIN_MSG_MAP_EX(CCustomCheckedListview)
 			MSG_WM_CREATE(OnCreate)
 			MSG_WM_SIZE(OnSize)
+			MSG_WM_ERASEBKGND(OnEraseBkgnd)
 			MESSAGE_HANDLER_EX(WM_RESET_LISTVIEW, OnResetListView)
 			MESSAGE_HANDLER_EX(WM_CHECKED_ITEM, OnListViewItemChecked)
 			MSG_WM_NOTIFY(OnNotify)
@@ -377,6 +384,12 @@ namespace freeze {
 			{
 				UpdateLayout(size.cx, size.cy);
 			}
+		}
+
+		// 背景擦除
+		BOOL OnEraseBkgnd(WTL::CDCHandle /*dc*/)
+		{
+			return TRUE;
 		}
 
 		LRESULT OnResetListView(UINT uMsg, WPARAM wParam, LPARAM lParam)
