@@ -366,7 +366,7 @@ namespace freeze {
 			MSG_WM_NOTIFY(OnNotify)
 			MSG_WM_DROPFILES(OnDropFiles)
 			MSG_WM_COMMAND(OnCommand)
-			END_MSG_MAP()
+		END_MSG_MAP()
 
 		int OnCreate(LPCREATESTRUCT lpCreateStruct)
 		{
@@ -379,7 +379,8 @@ namespace freeze {
 			m_CheckListViewCtrl.Create(this->m_hWnd,
 				rcDefault,
 				nullptr,
-				WS_CHILD | WS_VISIBLE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNTOP | LVS_SINGLESEL, WS_EX_CLIENTEDGE,
+				WS_CHILD | WS_VISIBLE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNTOP | LVS_SINGLESEL,
+				WS_EX_CLIENTEDGE,
 				ID_CHECKED_LISTVIEW);
 			if (m_CheckListViewCtrl.IsWindow())
 			{
@@ -441,7 +442,7 @@ namespace freeze {
 		{
 			if (!m_CheckListViewCtrl)return 0;
 
-			auto checked = IsChecked(static_cast<int>(wParam));
+			OnItemClicked(static_cast<int>(wParam));
 
 			return 0;
 		}
@@ -571,81 +572,24 @@ namespace freeze {
 			{
 				LPNMITEMACTIVATE pnmia = reinterpret_cast<LPNMITEMACTIVATE>(pnmh);
 
-				if (NM_CLICK == pnmh->code || NM_RCLICK == pnmh->code)
+				if ((NM_CLICK == pnmh->code) && (pnmia->iSubItem>0))
 				{
-					auto index = GetSelectedIndex();
-					if (index >= 0)
-					{
-						auto checked = IsChecked(index);
-						m_HasDetectImage = checked;
-
-						auto find = std::find_if(std::begin(m_VecData), std::end(m_VecData), [&index](auto data) {
-							return data.index == (index + 1);
-						});
-
-						if (m_VecData.end() != find)
-						{
-							m_CurrentImageFile = m_CurrentImageDirectory + L"\\" + find->file;
-						}
-
-						if (m_HasDetectImage && !m_CurrentDetectImageDirectory.empty())
-						{
-							auto detect_file = find->file;
-							// 总长度是37，返回的是36
-							auto pos = detect_file.find_last_of(L".tiff");
-							// 替换的起始位置，替换多长
-							detect_file.replace(pos - 4, 5, L".bmp");
-							m_CurrentDetectImageFile = m_CurrentDetectImageDirectory + L"\\" + detect_file;
-						}
-						else
-						{
-							m_CurrentDetectImageFile = L"";
-						}
-					}
-					else
-					{
-						// 可能单击的是前面的复选框
-						// TODO: 重载CheckListViewCtrl
-						//CPoint pt;
-						//GetCursorPos(&pt);
-						//m_CheckListViewCtrl.ScreenToClient(&pt);
-						//LVHITTESTINFO hitTestInfo = {};
-						//hitTestInfo.pt = pt;
-						//m_CheckListViewCtrl.HitTest(&hitTestInfo);
-						//int item = hitTestInfo.iItem;
-					}
-
-					// 弹出菜单
-					if (NM_RCLICK == pnmh->code)
-					{
-						auto menu = LoadMenu(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDR_CLV_CONTEXT_MENU));
-						auto pop = GetSubMenu(menu, 0);
-						auto pt = reinterpret_cast<LPNMITEMACTIVATE>(pnmh)->ptAction;
-						ClientToScreen(&pt);
-						TrackPopupMenuEx(pop,
-							TPM_NOANIMATION,
-							pt.x, pt.y,
-							this->m_hWnd,
-							nullptr);
-					}
-					else
-					{
-						if (!m_CurrentImageFile.empty())
-						{
-							auto docking_container = GetParent();
-							if (docking_container)
-							{
-								docking_container.SendMessage(WM_OPEN_IMAGE_WITH_DETECT, OPEN_IMAGE_THIS, reinterpret_cast<LPARAM>(m_CurrentDetectImageFile.c_str()));
-								docking_container.SendMessage(WM_OPEN_IMAGE, OPEN_IMAGE_THIS, reinterpret_cast<LPARAM>(m_CurrentImageFile.c_str()));
-							}
-						}
-					}
+					OnItemClicked(pnmia->iItem);
 				}
 
-
-				// TODO: 选择列表项前的复选框时
-				// ... 与菜单项"勾选"相同
-
+				// 弹出菜单
+				if (NM_RCLICK == pnmh->code)
+				{
+					auto menu = LoadMenu(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDR_CLV_CONTEXT_MENU));
+					auto pop = GetSubMenu(menu, 0);
+					auto pt = reinterpret_cast<LPNMITEMACTIVATE>(pnmh)->ptAction;
+					ClientToScreen(&pt);
+					TrackPopupMenuEx(pop,
+						TPM_NOANIMATION,
+						pt.x, pt.y,
+						this->m_hWnd,
+						nullptr);
+				}
 			}
 
 			// 当选择列表视图标题栏中的全选框时
@@ -677,8 +621,60 @@ namespace freeze {
 			return 0;
 		}
 
+		void OnItemClicked(int item)
+		{
+			if (item >= 0)
+			{
+				auto checked = IsChecked(item);
+				m_HasDetectImage = checked;
+
+				auto find = std::find_if(std::begin(m_VecData), std::end(m_VecData),
+					[&item](auto data) {
+						return data.index == (item + 1);
+					});
+
+				if (m_VecData.end() != find)
+				{
+					m_CurrentImageFile = m_CurrentImageDirectory + L"\\" + find->file;
+				}
+
+				if (m_HasDetectImage && !m_CurrentDetectImageDirectory.empty())
+				{
+					auto detect_file = find->file;
+					// 总长度是37，返回的是36
+					auto pos = detect_file.find_last_of(L".tiff");
+					// replace(替换的起始位置，替换多长,替换成什么)
+					detect_file.replace(pos - 4, 5, L".bmp");
+					m_CurrentDetectImageFile = m_CurrentDetectImageDirectory + L"\\" + detect_file;
+				}
+				else
+				{
+					m_CurrentDetectImageFile = L"";
+				}
+			}
+
+			if (!m_CurrentImageFile.empty())
+			{
+				auto docking_container = GetParent();
+				if (docking_container)
+				{
+					docking_container.SendMessage(
+						WM_OPEN_IMAGE_WITH_DETECT, 
+						OPEN_IMAGE_THIS, 
+						reinterpret_cast<LPARAM>(m_CurrentDetectImageFile.c_str())
+					);
+					docking_container.SendMessage(
+						WM_OPEN_IMAGE, 
+						OPEN_IMAGE_THIS, 
+						reinterpret_cast<LPARAM>(m_CurrentImageFile.c_str())
+					);
+				}
+			}
+		}
+
 		void OnCommand(UINT uNotifyCode, int nID, CWindow wndCtl)
 		{
+			auto docking_container = GetParent();
 			switch (nID)
 			{
 			default:
@@ -688,12 +684,35 @@ namespace freeze {
 			case ID_CLV_MENU_SELECT_ONE: // 勾选
 				break;
 			case ID_CLV_MENU_OPEN_THIS: // 当前窗口打开
-				GetParent().SendMessage(WM_OPEN_IMAGE_WITH_DETECT, OPEN_IMAGE_THIS, reinterpret_cast<LPARAM>(m_CurrentDetectImageFile.c_str()));
-				GetParent().SendMessage(WM_OPEN_IMAGE, OPEN_IMAGE_THIS, reinterpret_cast<LPARAM>(m_CurrentImageFile.c_str()));
+				if (docking_container)
+				{
+					docking_container.SendMessage(
+						WM_OPEN_IMAGE_WITH_DETECT,
+						OPEN_IMAGE_THIS,
+						reinterpret_cast<LPARAM>(m_CurrentDetectImageFile.c_str())
+					);
+					docking_container.SendMessage(
+						WM_OPEN_IMAGE,
+						OPEN_IMAGE_THIS,
+						reinterpret_cast<LPARAM>(m_CurrentImageFile.c_str())
+					);
+				}
+
 				break;
 			case ID_CLV_MENU_OPEN_NEW: // 新建窗口打开
-				GetParent().SendMessage(WM_OPEN_IMAGE_WITH_DETECT, OPEN_IMAGE_NEW, reinterpret_cast<LPARAM>(m_CurrentDetectImageFile.c_str()));
-				GetParent().SendMessage(WM_OPEN_IMAGE, OPEN_IMAGE_NEW, reinterpret_cast<LPARAM>(m_CurrentImageFile.c_str()));
+				if (docking_container)
+				{
+					docking_container.SendMessage(
+						WM_OPEN_IMAGE_WITH_DETECT,
+						OPEN_IMAGE_NEW,
+						reinterpret_cast<LPARAM>(m_CurrentDetectImageFile.c_str())
+					);
+					docking_container.SendMessage(
+						WM_OPEN_IMAGE,
+						OPEN_IMAGE_NEW,
+						reinterpret_cast<LPARAM>(m_CurrentImageFile.c_str())
+					);
+				}
 				break;
 			}
 		}
@@ -704,7 +723,11 @@ namespace freeze {
 			auto ret = ::DragQueryFile(hDropInfo, 0, szFile, MAX_PATH);
 			if (ret)
 			{
-				m_DirBar.SendMessage(WM_DIRECTORY_CHANGED, 0, reinterpret_cast<LPARAM>(szFile));
+				m_DirBar.SendMessage(
+					WM_DIRECTORY_CHANGED, 
+					0,
+					reinterpret_cast<LPARAM>(szFile)
+				);
 				DragFinish(hDropInfo);
 			}
 		}
