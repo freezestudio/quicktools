@@ -14,6 +14,7 @@ namespace freeze
 		BEGIN_MSG_MAP_EX(CDockingContainer)
 			MSG_WM_CREATE(OnCreate)
 			MESSAGE_HANDLER_EX(WM_OPEN_IMAGE,OnOpenImage)
+			MESSAGE_HANDLER_EX(WM_OPEN_REF_IMAGE, OnOpenRefImage)
 			MESSAGE_HANDLER_EX(WM_OPEN_IMAGE_WITH_DETECT, OnOpenImageWithDetect)
 			CHAIN_MSG_MAP(WTL::CPaneContainerImpl<CDockingListViewContainer>)
 		END_MSG_MAP()
@@ -53,12 +54,28 @@ namespace freeze
 			return 0;
 		}
 
+		LRESULT OnOpenRefImage(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam)
+		{
+			auto splitter = GetParent();
+			if (splitter.m_hWnd)
+			{
+				auto main_frame = splitter.GetParent().GetParent();
+				if (main_frame)
+				{
+					main_frame.SendMessage(WM_OPEN_REF_IMAGE, wParam, lParam);
+				}
+			}
+
+			SetMsgHandled(FALSE);
+			return 0;
+		}
+
 		LRESULT OnOpenImageWithDetect(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam)
 		{
 			auto splitter = GetParent();
 			if (splitter.m_hWnd)
 			{
-				auto main_frame = splitter.GetParent();
+				auto main_frame = splitter.GetParent().GetParent();
 				if (main_frame)
 				{
 					main_frame.SendMessage(WM_OPEN_IMAGE_WITH_DETECT, wParam, lParam);

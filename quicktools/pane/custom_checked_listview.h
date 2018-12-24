@@ -112,8 +112,10 @@ namespace freeze {
 		// 工作中的检测图像文件 与工作图像一一对应
 		std::wstring m_CurrentDetectImageFile;
 
-		//TODO: 是否有参考图像
+		// TODO: 是否有参考图像
 		bool m_HasRefImage = false;
+		// TODO: 是否有(与工作中的图像文件对应的)检测图像
+		bool m_HasDetectImage = false;
 
 		//// 设置接收打开图像消息的窗口
 		//HWND m_RecvOpenImageMsgWnd = nullptr;
@@ -287,6 +289,8 @@ namespace freeze {
 			m_VecData.clear();
 			m_HasRefImage = false;
 
+			std::wstring full_path_ref_image;
+
 			auto path{ std::filesystem::path{dir} };
 			auto begin = std::filesystem::directory_iterator{ path };
 			auto end = std::filesystem::directory_iterator{};
@@ -309,6 +313,7 @@ namespace freeze {
 						};
 						m_VecData.emplace_back(list_data);
 						m_HasRefImage = true;
+						full_path_ref_image = m_CurrentImageDirectory + L"\\" + file_name.wstring();
 					}
 					else
 					{
@@ -317,6 +322,17 @@ namespace freeze {
 					}
 
 				}
+			}
+
+			// TODO: 自动初始化参考图像
+			auto docking_container = GetParent();
+			if (docking_container)
+			{
+				docking_container.SendMessage(
+					WM_OPEN_REF_IMAGE,
+					m_HasRefImage ? 1 : 0,
+					reinterpret_cast<LPARAM>(full_path_ref_image.c_str())
+				);
 			}
 		}
 
@@ -425,16 +441,126 @@ namespace freeze {
 		{
 			if (!m_CheckListViewCtrl)return 0;
 
-			SetSelectedItem(static_cast<int>(wParam));
-			NMHDR nmh = {};
-			nmh.hwndFrom = m_CheckListViewCtrl;
-			nmh.idFrom = ID_CHECKED_LISTVIEW;
-			nmh.code = NM_CLICK;
-			OnNotify(ID_CHECKED_LISTVIEW, &nmh);
+			auto checked = IsChecked(static_cast<int>(wParam));
 
 			return 0;
 		}
 
+
+		//LRESULT OnNotify(int idCtrl, LPNMHDR pnmh)
+		//{
+		//	if (!m_CheckListViewCtrl)return 0;
+
+		//	// 选择列表项时
+		//	if (ID_CHECKED_LISTVIEW == idCtrl)
+		//	{
+		//		LPNMITEMACTIVATE pnmia = reinterpret_cast<LPNMITEMACTIVATE>(pnmh);
+
+		//		if (NM_CLICK == pnmh->code || NM_RCLICK == pnmh->code)
+		//		{
+		//			auto index = GetSelectedIndex();
+		//			if (index >= 0)
+		//			{
+		//				auto checked = IsChecked(index);
+		//				m_HasDetectImage = checked;
+
+		//				auto find = std::find_if(std::begin(m_VecData), std::end(m_VecData), [&index](auto data) {
+		//					return data.index == (index + 1);
+		//				});
+
+		//				if (m_VecData.end() != find)
+		//				{
+		//					m_CurrentImageFile = m_CurrentImageDirectory + L"\\" + find->file;
+		//				}
+
+		//				if (m_HasDetectImage && !m_CurrentDetectImageDirectory.empty())
+		//				{
+		//					auto detect_file = find->file;
+		//					// 总长度是37，返回的是36
+		//					auto pos = detect_file.find_last_of(L".tiff");
+		//					// 替换的起始位置，替换多长
+		//					detect_file.replace(pos - 4, 5, L".bmp");
+		//					m_CurrentDetectImageFile = m_CurrentDetectImageDirectory + L"\\" + detect_file;
+		//				}
+		//				else
+		//				{
+		//					m_CurrentDetectImageFile = L"";
+		//				}
+		//			}
+		//			else
+		//			{
+		//				// 可能单击的是前面的复选框
+		//				// TODO: 重载CheckListViewCtrl
+		//				//CPoint pt;
+		//				//GetCursorPos(&pt);
+		//				//m_CheckListViewCtrl.ScreenToClient(&pt);
+		//				//LVHITTESTINFO hitTestInfo = {};
+		//				//hitTestInfo.pt = pt;
+		//				//m_CheckListViewCtrl.HitTest(&hitTestInfo);
+		//				//int item = hitTestInfo.iItem;
+		//			}
+
+		//			// 弹出菜单
+		//			if (NM_RCLICK == pnmh->code)
+		//			{
+		//				auto menu = LoadMenu(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDR_CLV_CONTEXT_MENU));
+		//				auto pop = GetSubMenu(menu, 0);
+		//				auto pt = reinterpret_cast<LPNMITEMACTIVATE>(pnmh)->ptAction;
+		//				ClientToScreen(&pt);
+		//				TrackPopupMenuEx(pop,
+		//					TPM_NOANIMATION,
+		//					pt.x, pt.y,
+		//					this->m_hWnd,
+		//					nullptr);
+		//			}
+		//			else
+		//			{
+		//				if (!m_CurrentImageFile.empty())
+		//				{
+		//					auto docking_container = GetParent();
+		//					if (docking_container)
+		//					{
+		//						docking_container.SendMessage(WM_OPEN_IMAGE_WITH_DETECT, OPEN_IMAGE_THIS, reinterpret_cast<LPARAM>(m_CurrentDetectImageFile.c_str()));
+		//						docking_container.SendMessage(WM_OPEN_IMAGE, OPEN_IMAGE_THIS, reinterpret_cast<LPARAM>(m_CurrentImageFile.c_str()));
+		//					}
+		//				}
+		//			}
+		//		}
+
+
+		//		// TODO: 选择列表项前的复选框时
+		//		// ... 与菜单项"勾选"相同
+
+		//	}
+
+		//	// 当选择列表视图标题栏中的全选框时
+		//	if (auto header = m_CheckListViewCtrl.GetHeader(); header.GetDlgCtrlID() == idCtrl)
+		//	{
+		//		HDITEM hdi;
+		//		try
+		//		{
+		//			// Release版，这里会异常
+		//			if (header && header.GetItem(0, &hdi))
+		//			{
+		//				if ((hdi.fmt & HDF_CHECKED) != 0)
+		//				{
+		//					// 全选
+		//				}
+		//				else
+		//				{
+		//					// 取消全选
+		//				}
+		//			}
+		//		}
+		//		catch (const std::exception& e)
+		//		{
+		//			MessageBoxA(nullptr, e.what(), "", MB_OK);
+		//		}
+		//	}
+
+		//	SetMsgHandled(FALSE);
+		//	return 0;
+		//}
 
 		LRESULT OnNotify(int idCtrl, LPNMHDR pnmh)
 		{
@@ -443,24 +569,26 @@ namespace freeze {
 			// 选择列表项时
 			if (ID_CHECKED_LISTVIEW == idCtrl)
 			{
+				LPNMITEMACTIVATE pnmia = reinterpret_cast<LPNMITEMACTIVATE>(pnmh);
+
 				if (NM_CLICK == pnmh->code || NM_RCLICK == pnmh->code)
 				{
 					auto index = GetSelectedIndex();
 					if (index >= 0)
 					{
 						auto checked = IsChecked(index);
-						m_HasRefImage = checked;
+						m_HasDetectImage = checked;
 
 						auto find = std::find_if(std::begin(m_VecData), std::end(m_VecData), [&index](auto data) {
 							return data.index == (index + 1);
-							});
+						});
 
 						if (m_VecData.end() != find)
 						{
 							m_CurrentImageFile = m_CurrentImageDirectory + L"\\" + find->file;
 						}
 
-						if (m_HasRefImage && !m_CurrentDetectImageDirectory.empty())
+						if (m_HasDetectImage && !m_CurrentDetectImageDirectory.empty())
 						{
 							auto detect_file = find->file;
 							// 总长度是37，返回的是36

@@ -17,8 +17,8 @@ namespace freeze
 
 		void SetBitmap(std::wstring const& file)
 		{
-			m_Image.from_file(file);
-			m_Image.convert(GetDC());
+			m_Image.raw_file(file);
+			m_Image.create_all_image(GetDC());
 		}
 
 		int OnCreate(LPCREATESTRUCT lpCreateStruct)

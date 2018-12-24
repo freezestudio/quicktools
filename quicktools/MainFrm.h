@@ -28,8 +28,10 @@ public:
 	freeze::CDockingOperaContainer    m_PaneOperaContainer;
 
 	std::map<std::wstring, int> m_mapImageFileView;
-	std::wstring m_ActivedImage; // 活动视图关联的原始图像
-	std::wstring m_DetectImage;  // 关联的检测图像
+	std::wstring m_ActivedImage;   // 活动视图关联的原始图像
+	std::wstring m_DetectImage;    // 关联的检测图像
+	std::wstring m_RefImage;       // 参考图像
+	bool m_RefImageInited = false; // 参考图像已经初始化
 
 	DWORD m_dwDock = PANE_DOCK_RIGHT;
 	int m_PaneWidth = DEFAULT_PANE_WIDTH;
@@ -75,11 +77,12 @@ public:
 		COMMAND_ID_HANDLER_EX(ID_OPERATOR_SOBEL, OnSobel)
 		COMMAND_RANGE_HANDLER_EX(ID_WINDOW_TABFIRST, ID_WINDOW_TABLAST, OnWindowActivate)
 		MESSAGE_HANDLER_EX(WM_OPEN_IMAGE, OnOpenImage)
+		MESSAGE_HANDLER_EX(WM_OPEN_REF_IMAGE, OnOpenRefImage)
 		MESSAGE_HANDLER_EX(WM_OPEN_IMAGE_WITH_DETECT, OnOpenImageWithDetect)
 		MESSAGE_HANDLER_EX(WM_CANNY, OnCannyHandler)
 		CHAIN_MSG_MAP(WTL::CUpdateUI<CMainFrame>)
 		CHAIN_MSG_MAP(WTL::CFrameWindowImpl<CMainFrame>)
-	END_MSG_MAP()
+		END_MSG_MAP()
 
 	// Handler prototypes (uncomment arguments if needed):
 	//	LRESULT MessageHandler(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
@@ -252,13 +255,33 @@ public:
 	LRESULT OnOpenImageWithDetect(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam)
 	{
 		m_DetectImage = reinterpret_cast<wchar_t*>(lParam);
+
+		// 重新设置对话框对应的复选框
 		if (m_CannyDlg)
 		{
 			m_CannyDlg.SetDetectChecked(!m_DetectImage.empty());
 		}
 
+		// 如果有活动视图，则重新设置图像
+		if (m_pActiveView)
+		{
+			m_pActiveView->SetBitmap2(m_ActivedImage, m_DetectImage);
+		}
+
 		return 0;
 	}
+
+	// 参考图像文件
+	LRESULT OnOpenRefImage(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam)
+	{
+		if (wParam)
+		{
+			m_RefImage = reinterpret_cast<wchar_t*>(lParam);
+		}
+
+		return 0;
+	}
+
 
 	// Menu -> New
 	void OnFileNew(UINT /*uNotifyCode*/, int /*nID*/, CWindow /*wndCtl*/)
@@ -271,6 +294,21 @@ public:
 		pView->Create(m_TabView, rcDefault, NULL, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, 0);
 
 		m_TabView.AddPage(pView->m_hWnd, m_ActivedImage.c_str());
+
+		bool show_ref_image = m_CannyDlg.IsRefImageShow();
+		pView->ShowRefImage(show_ref_image);
+
+		if (m_RefImage.empty())
+		{
+			m_RefImageInited = false;
+		}
+
+		if (!m_RefImage.empty())
+		{
+			pView->SetRefBitmap(m_RefImage);
+			m_RefImageInited = true;
+		}
+
 		pView->SetBitmap2(m_ActivedImage, m_DetectImage);
 
 		AddImageFileView(m_ActivedImage, m_TabView.GetActivePage());
@@ -393,7 +431,7 @@ public:
 			this->m_hWndClient,
 			rcDefault,
 			NULL,
-			WS_CHILD|WS_VISIBLE|WS_CLIPSIBLINGS|WS_CLIPCHILDREN
+			WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
 		);
 
 		// 两容器放置到垂直分割窗口中

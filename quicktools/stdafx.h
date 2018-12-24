@@ -53,18 +53,20 @@ extern WTL::CAppModule _Module;
 #define WM_OPEN_IMAGE WM_USER + 103
 // 打开的图像关联了检测文件
 #define WM_OPEN_IMAGE_WITH_DETECT WM_USER + 104
+// 传递参考图像文件路径
+#define WM_OPEN_REF_IMAGE WM_USER + 105
 // 当勾选一个项目时
-#define WM_CHECKED_ITEM WM_USER + 105
+#define WM_CHECKED_ITEM WM_USER + 106
 
 // see canny_dlg
 
 // 改变Canny算子参数
-#define WM_CANNY WM_USER + 106
+#define WM_CANNY WM_USER + 107
 
 // see image_data.h
 
 // 完成一次Canny算子的运算时
-#define WM_CANNY_FINISH WM_USER + 107
+#define WM_CANNY_FINISH WM_USER + 108
 
 
 #if defined _M_IX86

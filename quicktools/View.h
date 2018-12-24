@@ -4,6 +4,13 @@
 
 #pragma once
 
+inline freeze::CannyParam g_CannyParam{
+	V_THRESHOLD_1,
+	V_THRESHOLD_2,
+	V_APERTURE,
+	false,
+};
+
 class CView :
 	public WTL::CScrollWindowImpl<CView>
 {
@@ -11,10 +18,9 @@ public:
 	DECLARE_WND_CLASS(L"OpenCV_ImageView")
 
 	freeze::bmp_image m_Bitmap;
-	// TODO: 临时保存的图像文件名
-	std::wstring m_RawImageFile;
-	// TODO: Canny参数
-	freeze::CannyParam m_CannyParam;
+
+	// TODO: 是否自动显示参考图像
+	bool m_ShowRefImage = false;
 
 	BOOL PreTranslateMessage(MSG* pMsg)
 	{
@@ -29,7 +35,7 @@ public:
 
 	BEGIN_MSG_MAP_EX(CView)
 		MSG_WM_CREATE(OnCreate)
-		MSG_WM_ERASEBKGND(OnEraseBkgnd)
+		//MSG_WM_ERASEBKGND(OnEraseBkgnd)
 		MESSAGE_HANDLER_EX(WM_CANNY, OnCanny)
 		MSG_WM_DROPFILES(OnDropFiles)
 		CHAIN_MSG_MAP(WTL::CScrollWindowImpl<CView>)
@@ -42,16 +48,18 @@ public:
 
 	void SetCannyParam()
 	{
-
+		//m_CannyParam;
 	}
 
-	void SetBitmap2(std::wstring const& file, std::wstring const& detectfile=L"", bool auto_scroll = true)
+	void ShowRefImage(bool show = false)
 	{
-		// TODO: 企图用于各种算子时动态改变图像
-		m_RawImageFile = file;
+		m_ShowRefImage = show;
+		m_Bitmap.set_use_ref_data(m_ShowRefImage);
+	}
 
-		m_Bitmap.from_file(file);
-		m_Bitmap.convert(GetDC());
+	void SetBitmap2(std::wstring const& file, std::wstring const& detectfile = L"", bool auto_scroll = true)
+	{
+		m_Bitmap.raw_file(file);
 
 		if (!detectfile.empty())
 		{
@@ -59,16 +67,37 @@ public:
 			m_Bitmap.create_defect_bitmap(GetDC());
 		}
 
+		if (m_Bitmap.is_auto_use_operator())
+		{
+			m_Bitmap.canny(
+				g_CannyParam.threshold1,
+				g_CannyParam.threshold2,
+				g_CannyParam.aperture,
+				g_CannyParam.l2
+			);
+		}
+
+		ResetBitmap();
+
 		if (auto_scroll)
 		{
 			SetScroll();
 		}
 	}
 
-	// 重置算子图像
-	void ResetBitmap(int action = 4)
+	// 设置参考图像
+	void SetRefBitmap(std::wstring const& ref_file)
 	{
-		m_Bitmap.convert(GetDC(), action);
+		m_Bitmap.reference_file(ref_file);
+		m_Bitmap.create_ref_opera_bitmap(GetDC());
+	}
+
+	// 重置算子图像
+	void ResetBitmap()
+	{
+		m_Bitmap.create_all_image(GetDC());
+		m_Bitmap.set_use_ref_data(m_ShowRefImage);
+
 		InvalidateRect(nullptr);
 		UpdateWindow();
 	}
@@ -110,6 +139,8 @@ public:
 
 		// 启用拖放支持
 		::DragAcceptFiles(this->m_hWnd, TRUE);
+		// 启用自动应用算子
+		m_Bitmap.set_auto_use_operator();
 
 		SetMsgHandled(FALSE);
 		return 0;
@@ -125,7 +156,7 @@ public:
 		if (m_Bitmap)
 		{
 			auto left = (rc.Width() - m_Bitmap.width()) / 2;
-			m_Bitmap.draw_ex(dc, left);
+			m_Bitmap.draw/*_ex*/(dc, left);
 		}
 	}
 
@@ -142,67 +173,57 @@ public:
 		int threshold2 = V_THRESHOLD_2;
 		int aperture = V_APERTURE;
 		bool l2 = false;
+
 		switch (nID)
 		{
 		default:
 			break;
 		case IDC_THRESHOLD_EDIT_1: // 阈值1
-			m_CannyParam.threshold1 = value;
+			g_CannyParam.threshold1 = value;
 			break;
 		case IDC_THRESHOLD_EDIT_2: // 阈值2
-			m_CannyParam.threshold2 = value;
+			g_CannyParam.threshold2 = value;
 			break;
 		case IDC__APERTURE_EDIT: // 孔洞
-			m_CannyParam.aperture = value;
+			g_CannyParam.aperture = value;
 			break;
 		case IDC_L2GRADIENT_CHECK: // L2
-			m_CannyParam.l2 = value == 1 ? true : false;
+			g_CannyParam.l2 = value == 1 ? true : false;
 			break;
 		case ID_RESET_BTN: // 重置Canny参数
-			m_CannyParam.threshold1 = threshold1;
-			m_CannyParam.threshold2 = threshold2;
-			m_CannyParam.aperture = aperture;
-			m_CannyParam.l2 = l2;
+			g_CannyParam.threshold1 = threshold1;
+			g_CannyParam.threshold2 = threshold2;
+			g_CannyParam.aperture = aperture;
+			g_CannyParam.l2 = l2;
 			break;
 		case IDC_CHECK_RESET_RAW://原始图像
 			if (m_Bitmap)
 			{
 				m_Bitmap.exclude_other_image(value);
 			}
-			
 			break;
 		case IDC_CHECK_NO_DEFECT://缺陷图像图像
 			if (m_Bitmap)
 			{
 				m_Bitmap.exclude_defect_image(!value);
 			}
-			
+			break;
+		case IDC_CHECK_REF_IMAGE://使用参考图像(运算)
+			ShowRefImage(value);
 			break;
 		}
 
 		if (m_Bitmap)
 		{
-			//auto map = m_Bitmap.mat_raw_clone();
-			//cv::Mat ret_mat;
-			//cv::Canny(map, ret_mat, m_CannyParam.threshold1, m_CannyParam.threshold2, m_CannyParam.aperture, m_CannyParam.l2);
-			//std::vector<std::vector<cv::Point>> contours;
-			//std::vector<cv::Vec4i> hierarchy;
-			//cv::findContours(ret_mat, contours, hierarchy, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
-			//cv::Scalar color{ 0.0,0.0,255.0,0.0 };
-			//cv::Mat draw_image = cv::Mat::zeros(ret_mat.size(), CV_8UC3);
-			//for (auto i = 0; i < contours.size(); ++i)
-			//{
-			//	cv::drawContours(draw_image, contours, i, color/*, 2, cv::LINE_8, hierarchy, 0*/);
-			//}
-			//m_Bitmap.set_data_opera(draw_image);
-			//m_Bitmap.set_data_opera(ret_mat);
-
-			m_Bitmap.canny(
-				m_CannyParam.threshold1, 
-				m_CannyParam.threshold2, 
-				m_CannyParam.aperture, 
-				m_CannyParam.l2
-			);
+			if (!m_Bitmap.show_raw_only())
+			{
+				m_Bitmap.canny(
+					g_CannyParam.threshold1,
+					g_CannyParam.threshold2,
+					g_CannyParam.aperture,
+					g_CannyParam.l2
+				);
+			}
 
 			ResetBitmap();
 		}

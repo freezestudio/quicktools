@@ -51,6 +51,11 @@ namespace freeze {
 			m_NoDefectBtn.SetCheck(check ? BST_CHECKED:BST_UNCHECKED);
 		}
 
+		bool IsRefImageShow() const
+		{
+			return m_ResetRefBtn.GetCheck() == BST_CHECKED;
+		}
+
 		LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 		{
 			CenterWindow(GetParent());
