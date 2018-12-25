@@ -8,6 +8,9 @@
 #define IDD_CANNY                       202
 #define IDD_LAPLACIAN                   203
 #define IDD_SOBEL                       206
+#define IDD_GAUSSIAN                    208
+#define IDB_BITMAP1                     211
+#define IDB_BITMAP_TOOLS                211
 #define ID_RESET_BTN                    999
 #define IDC_THRESHOLD_SLIDER_1          1000
 #define IDC_THRESHOLD_EDIT_1            1001
@@ -18,8 +21,15 @@
 #define IDC_CHECK_RESET_RAW             1006
 #define IDC_CHECK1                      1007
 #define IDC_CHECK_NO_DEFECT             1007
-#define IDC_CHECK2                      1008
+#define IDC_CHECK_KERNEL_Y              1007
 #define IDC_CHECK_REF_IMAGE             1008
+#define IDC_EDIT_KERNEL_X               1009
+#define IDC_EDIT_KERNEL_Y               1010
+#define IDC_EDIT_SIGMA_X                1011
+#define IDC_CHECK_SIGMA_Y               1012
+#define IDC_EDIT_SIGMA_Y                1013
+#define IDC_COMBO_BORDER_TYPE           1014
+#define IDC_BUTTON_RESET_GAUSSIAN       1015
 #define ID_WINDOW_CLOSE                 32772
 #define ID_WINDOW_CLOSE_ALL             32773
 #define ID_CLV_32776                    32776
@@ -33,14 +43,15 @@
 #define ID_OPERATOR_LAPLACIAN           32784
 #define ID_OPERATOR_SOBEL               32785
 #define ID_VIEW_LISTVIEWBAR             32786
+#define ID_OPERATOR_GAUSSIAN            32787
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        208
-#define _APS_NEXT_COMMAND_VALUE         32787
-#define _APS_NEXT_CONTROL_VALUE         1009
+#define _APS_NEXT_RESOURCE_VALUE        212
+#define _APS_NEXT_COMMAND_VALUE         32788
+#define _APS_NEXT_CONTROL_VALUE         1016
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

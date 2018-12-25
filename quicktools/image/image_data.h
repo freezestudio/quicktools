@@ -26,6 +26,23 @@ namespace freeze {
 			cv::Scalar color;
 		};
 
+		struct GaussianParam
+		{
+			int x;
+			int y;
+			double sx;
+			double sy;
+			int type;
+		};
+
+		struct GaussianWithArrayParam : public GaussianParam
+		{
+			HANDLE hEvent;
+			cv::InputArray inArray;
+			cv::InputOutputArray outArray;
+			cv::Scalar color;
+		};
+
 		inline static DWORD CALLBACK AsyncOpera(LPVOID pParam)
 		{
 			CannyWithArrayParam* pCannyParam = reinterpret_cast<CannyWithArrayParam*>(pParam);
@@ -59,6 +76,45 @@ namespace freeze {
 
 				//PostThreadMessage(pCannyParam->idThread, WM_CANNY_FINISH, 0, 0);
 				ResetEvent(pCannyParam->hEvent);
+				return TRUE;
+			}
+			return FALSE;
+		}
+
+		inline static DWORD CALLBACK AsyncGaussian(LPVOID pParam)
+		{
+			GaussianWithArrayParam* pGaussianParam = reinterpret_cast<GaussianWithArrayParam*>(pParam);
+			auto result = WaitForSingleObject(pGaussianParam->hEvent, INFINITE);
+			if (WAIT_OBJECT_0 == result)
+			{
+				cv::Mat ret_mat;
+				try
+				{
+					cv::Size size = { pGaussianParam->x,pGaussianParam->y, };
+					cv::GaussianBlur(pGaussianParam->inArray, ret_mat,
+						size, pGaussianParam->sx, pGaussianParam->sy,pGaussianParam->type);
+				}
+				catch (const std::exception& e)
+				{
+					auto reason = e.what();
+					ResetEvent(pGaussianParam->hEvent);
+					return FALSE;
+				}
+
+				std::vector<std::vector<cv::Point>> contours;
+				std::vector<cv::Vec4i> hierarchy;
+
+				cv::findContours(ret_mat, contours, hierarchy, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
+				//cv::Scalar color{ 0.0,0.0,255.0, };
+
+#pragma omp parallel for
+				for (int i = 0; i < contours.size(); ++i)
+				{
+					cv::drawContours(pGaussianParam->outArray, contours, i, pGaussianParam->color, 2, cv::LINE_4/*, hierarchy, 0*/);
+				}
+
+				//PostThreadMessage(pGaussianParam->idThread, WM_GAUSSIAN_FINISH, 0, 0);
+				ResetEvent(pGaussianParam->hEvent);
 				return TRUE;
 			}
 			return FALSE;
@@ -218,6 +274,8 @@ namespace freeze {
 			);
 		}
 
+		// 运算
+	public:
 		void canny(double threshold1, double threshold2, int aperture, bool l2 = false)
 		{
 			
@@ -291,6 +349,70 @@ namespace freeze {
 		void sobel()
 		{
 
+		}
+
+		void gaussian_blur(int x, int y, double sigma_x, double sigma_y = 0, int border = cv::BORDER_DEFAULT)
+		{
+			if (use_ref_image_data && !image_data_ref.empty())
+			{
+				// 每次运行，算子数据都需要重置为原始数据的副本
+				reset_data_ref_opera();
+				cv::Mat out_ref_mat = cv::Mat::zeros(
+					image_data_ref_opera.size(),
+					CV_8UC3
+				);
+
+				// 重置事件
+				SetEvent(opear_event);
+
+				GaussianWithArrayParam param = {
+					threshold1,
+					threshold2,
+					aperture,
+					l2,
+					opear_event,
+					image_data_ref_opera,
+					out_ref_mat,
+					cv::Scalar{0.0,255.0,0.0},
+				};
+
+				auto hRefThread = CreateThread(nullptr, 0, AsyncGaussian, &param, 0, nullptr);
+				auto result = WaitForSingleObject(hRefThread, INFINITE);
+				if (WAIT_OBJECT_0 == result)
+				{
+					set_data_ref_opera(out_ref_mat);
+				}
+				CloseHandle(hRefThread);
+			}
+
+			// 每次运行，算子数据都需要重置为原始数据的副本
+			reset_data_opera();
+
+			// 重置事件
+			SetEvent(opear_event);
+
+			cv::Mat out_mat = cv::Mat::zeros(
+				image_data_opera.size(),
+				CV_8UC3
+			);
+			GaussianWithArrayParam param = {
+				threshold1,
+				threshold2,
+				aperture,
+				l2,
+				opear_event,
+				image_data_opera,
+				out_mat,
+				cv::Scalar{ 0.0,0.0,255.0 },
+			};
+
+			auto hThread = CreateThread(nullptr, 0, AsyncGaussian, &param, 0, nullptr);
+			auto result = WaitForSingleObject(hThread, INFINITE);
+			if (WAIT_OBJECT_0 == result)
+			{
+				set_data_opera(out_mat);
+			}
+			CloseHandle(hThread);
 		}
 
 		// 属性

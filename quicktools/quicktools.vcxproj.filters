@@ -77,6 +77,21 @@
     <ClInclude Include="pane\dock_opera_pane.h">
       <Filter>Header Files\pane</Filter>
     </ClInclude>
+    <ClInclude Include="dlgs\gaussian_dlg.h">
+      <Filter>Header Files\dlgs</Filter>
+    </ClInclude>
+    <ClInclude Include="pane\drag_check_listview.h">
+      <Filter>Header Files\pane</Filter>
+    </ClInclude>
+    <ClInclude Include="pane\normal_opera_form.h">
+      <Filter>Header Files\pane</Filter>
+    </ClInclude>
+    <ClInclude Include="pane\opera_tools.h">
+      <Filter>Header Files\pane</Filter>
+    </ClInclude>
+    <ClInclude Include="pane\dock_opera_pane_item.h">
+      <Filter>Header Files\pane</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="quicktools.rc">
@@ -90,5 +105,11 @@
     <Image Include="res\quicktools.ico">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="res\tools.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\README.md" />
   </ItemGroup>
 </Project>

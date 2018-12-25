@@ -171,11 +171,11 @@ namespace freeze {
 		{
 			if (!m_CheckListViewCtrl.IsWindow())return;
 
-			m_CheckListViewCtrl.SetItemCount(data.size() - start);
+			m_CheckListViewCtrl.SetItemCount(static_cast<int>(data.size() - start));
 			m_CheckListViewCtrl.SendMessage(WM_SETREDRAW, FALSE);
 			for (auto i = start; i < m_VecData.size(); ++i)
 			{
-				InsertItem(i, group_id, data[i]);
+				InsertItem(static_cast<int>(i), group_id, data[i]);
 			}
 			m_CheckListViewCtrl.SendMessage(WM_SETREDRAW, TRUE);
 		}

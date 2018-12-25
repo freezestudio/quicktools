@@ -37,6 +37,7 @@ public:
 		MSG_WM_CREATE(OnCreate)
 		//MSG_WM_ERASEBKGND(OnEraseBkgnd)
 		MESSAGE_HANDLER_EX(WM_CANNY, OnCanny)
+		MESSAGE_HANDLER_EX(WM_GAUSSIAN, OnGaussian)
 		MSG_WM_DROPFILES(OnDropFiles)
 		CHAIN_MSG_MAP(WTL::CScrollWindowImpl<CView>)
 	END_MSG_MAP()
@@ -167,6 +168,13 @@ public:
 		return 0;
 	}
 
+	// Gaussian算子参数
+	LRESULT OnGaussian(UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		AdjustGaussianParam((UINT)HIWORD(wParam), (UINT)LOWORD(wParam));
+		return 0;
+	}
+
 	void AdjustCannyParam(UINT value, UINT nID)
 	{
 		int threshold1 = V_THRESHOLD_1;
@@ -228,4 +236,67 @@ public:
 			ResetBitmap();
 		}
 	}
+
+	void AdjustGaussianParam(UINT value, UINT nID)
+	{
+		int x = 3;
+		int y = 3;
+		int sx = 0;
+		int type = 4;
+
+		switch (nID)
+		{
+		default:
+			break;
+		case IDC_THRESHOLD_EDIT_1: // 阈值1
+			g_CannyParam.threshold1 = value;
+			break;
+		case IDC_THRESHOLD_EDIT_2: // 阈值2
+			g_CannyParam.threshold2 = value;
+			break;
+		case IDC__APERTURE_EDIT: // 孔洞
+			g_CannyParam.aperture = value;
+			break;
+		case IDC_L2GRADIENT_CHECK: // L2
+			g_CannyParam.l2 = value == 1 ? true : false;
+			break;
+		case ID_RESET_BTN: // 重置Canny参数
+			g_CannyParam.threshold1 = threshold1;
+			g_CannyParam.threshold2 = threshold2;
+			g_CannyParam.aperture = aperture;
+			g_CannyParam.l2 = l2;
+			break;
+		case IDC_CHECK_RESET_RAW://原始图像
+			if (m_Bitmap)
+			{
+				m_Bitmap.exclude_other_image(value);
+			}
+			break;
+		case IDC_CHECK_NO_DEFECT://缺陷图像图像
+			if (m_Bitmap)
+			{
+				m_Bitmap.exclude_defect_image(!value);
+			}
+			break;
+		case IDC_CHECK_REF_IMAGE://使用参考图像(运算)
+			ShowRefImage(value);
+			break;
+		}
+
+		if (m_Bitmap)
+		{
+			if (!m_Bitmap.show_raw_only())
+			{
+				m_Bitmap.canny(
+					g_CannyParam.threshold1,
+					g_CannyParam.threshold2,
+					g_CannyParam.aperture,
+					g_CannyParam.l2
+				);
+			}
+
+			ResetBitmap();
+		}
+	}
+
 };

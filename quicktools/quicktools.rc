@@ -83,6 +83,30 @@ BEGIN
     PUSHBUTTON      "取消",IDCANCEL,252,155,50,14
 END
 
+IDD_GAUSSIAN DIALOGEX 0, 0, 309, 176
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Gaussian Blur"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "确定",IDOK,252,155,50,14
+    GROUPBOX        "Kernel",IDC_STATIC,7,7,295,33
+    LTEXT           "X:",IDC_STATIC,14,20,8,8
+    EDITTEXT        IDC_EDIT_KERNEL_X,32,17,40,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "Y:",IDC_CHECK_KERNEL_Y,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,99,19,23,10
+    EDITTEXT        IDC_EDIT_KERNEL_Y,127,17,40,14,ES_AUTOHSCROLL | ES_NUMBER | WS_DISABLED
+    LTEXT           "卷积核尺寸需要为正值、奇数",IDC_STATIC,180,20,105,8
+    GROUPBOX        "Sigma",IDC_STATIC,7,50,295,35
+    LTEXT           "X:",IDC_STATIC,14,65,8,8
+    EDITTEXT        IDC_EDIT_SIGMA_X,32,62,40,14,ES_AUTOHSCROLL
+    CONTROL         "Y:",IDC_CHECK_SIGMA_Y,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,99,64,23,10
+    EDITTEXT        IDC_EDIT_SIGMA_Y,127,62,40,14,ES_AUTOHSCROLL | WS_DISABLED
+    LTEXT           "标准偏差若为0，则表示从Kernel计算获得",IDC_STATIC,180,60,113,21
+    GROUPBOX        "Border Type",IDC_STATIC,7,97,295,40
+    COMBOBOX        IDC_COMBO_BORDER_TYPE,32,113,137,30,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "默认值为镜像缩进[1位]",IDC_STATIC,180,115,82,8
+    PUSHBUTTON      "重置",IDC_BUTTON_RESET_GAUSSIAN,196,155,50,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -115,6 +139,14 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 169
     END
+
+    IDD_GAUSSIAN, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 302
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 169
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -138,6 +170,19 @@ IDD_SOBEL AFX_DIALOG_LAYOUT
 BEGIN
     0
 END
+
+IDD_GAUSSIAN AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_BITMAP_TOOLS        BITMAP                  "res\\tools.bmp"
 
 #endif    // 中文(简体，中国) resources
 /////////////////////////////////////////////////////////////////////////////
@@ -194,6 +239,8 @@ BEGIN
         MENUITEM "&Canny",                      ID_OPERATOR_CANNY
         MENUITEM "&Laplacian",                  ID_OPERATOR_LAPLACIAN
         MENUITEM "&Sobel",                      ID_OPERATOR_SOBEL
+        MENUITEM SEPARATOR
+        MENUITEM "&Gaussian",                   ID_OPERATOR_GAUSSIAN
     END
     POPUP "&Help"
     BEGIN

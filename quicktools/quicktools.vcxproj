@@ -223,6 +223,7 @@
   <ItemGroup>
     <ClInclude Include="AboutDlg.h" />
     <ClInclude Include="dlgs\canny_dlg.h" />
+    <ClInclude Include="dlgs\gaussian_dlg.h" />
     <ClInclude Include="image\batch_image.h" />
     <ClInclude Include="image\image_data.h" />
     <ClInclude Include="image\image_view.h" />
@@ -232,6 +233,10 @@
     <ClInclude Include="pane\directorybar.h" />
     <ClInclude Include="pane\dock_listview_pane.h" />
     <ClInclude Include="pane\dock_opera_pane.h" />
+    <ClInclude Include="pane\dock_opera_pane_item.h" />
+    <ClInclude Include="pane\drag_check_listview.h" />
+    <ClInclude Include="pane\normal_opera_form.h" />
+    <ClInclude Include="pane\opera_tools.h" />
     <ClInclude Include="pane\searchbar.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="stdafx.h" />
@@ -243,6 +248,10 @@
   <ItemGroup>
     <Image Include="res\quicktools.ico" />
     <Image Include="res\toolbar.bmp" />
+    <Image Include="res\tools.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\README.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

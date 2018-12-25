@@ -35,6 +35,7 @@ extern WTL::CAppModule _Module;
 #include <opencv2/opencv.hpp>
 
 #include <omp.h>
+#include <algorithm>
 #include <filesystem>
 
 // 自定义消息
@@ -63,10 +64,14 @@ extern WTL::CAppModule _Module;
 // 改变Canny算子参数
 #define WM_CANNY WM_USER + 107
 
+// see gaussian_dlg
+
+#define WM_GAUSSIAN WM_USER + 108
+
 // see image_data.h
 
 // 完成一次Canny算子的运算时
-#define WM_CANNY_FINISH WM_USER + 108
+#define WM_CANNY_FINISH WM_USER + 109
 
 
 #if defined _M_IX86
