@@ -8,6 +8,7 @@ namespace freeze {
 		enum { IDD = IDD_GAUSSIAN };
 
 		// Kernel
+		WTL::CTrackBarCtrl m_TrackKernelX;
 		WTL::CEdit m_KernelX;
 		WTL::CEdit m_KernelY;
 		WTL::CButton m_CheckKernelY;
@@ -20,6 +21,11 @@ namespace freeze {
 		// BorderType
 		WTL::CComboBox m_ComboBorderType;
 
+		// 减影
+		WTL::CButton m_CheckMinus;//IDC_CHECK_MINUS
+		WTL::CEdit m_ThresholdMid;//阈值 IDC_EDIT_THRESHOLD_MID
+		WTL::CTrackBarCtrl m_TrackThresholdMid;// IDC_SLIDER_THRESHOLD_MID
+
 		// 接收此对话框发出的消息的窗口
 		HWND m_RecvMsgWnd = nullptr;
 
@@ -30,8 +36,10 @@ namespace freeze {
 			COMMAND_ID_HANDLER(IDC_BUTTON_RESET_GAUSSIAN, OnReset)
 			COMMAND_ID_HANDLER_EX(IDC_CHECK_KERNEL_Y, OnKernelYCheck)
 			COMMAND_ID_HANDLER_EX(IDC_CHECK_SIGMA_Y, OnSigmaYCheck)
+			COMMAND_ID_HANDLER_EX(IDC_CHECK_MINUS, OnMinusCheck)
 			MSG_WM_COMMAND(OnCommand)
-			END_MSG_MAP()
+			MSG_WM_HSCROLL(OnHScroll)
+		END_MSG_MAP()
 
 		// Handler prototypes (uncomment arguments if needed):
 		//	LRESULT MessageHandler(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
@@ -43,10 +51,18 @@ namespace freeze {
 			m_RecvMsgWnd = hwnd;
 		}
 
+		bool CanUseMinus() const
+		{
+			return m_CheckMinus.GetCheck() == BST_CHECKED;
+		}
 
 		LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 		{
 			CenterWindow(GetParent());
+
+			m_TrackKernelX.Attach(GetDlgItem(IDC_SLIDER_KERNEL_SIZE));
+			m_TrackKernelX.SetRange(1, 31);
+			m_TrackKernelX.SetPos(V_KERNEL_X);
 
 			m_KernelX.Attach(GetDlgItem(IDC_EDIT_KERNEL_X));
 			m_KernelY.Attach(GetDlgItem(IDC_EDIT_KERNEL_Y));
@@ -80,7 +96,42 @@ namespace freeze {
 			});
 			m_ComboBorderType.SetCurSel(0);
 
+			// 减影
+			m_TrackThresholdMid.Attach(GetDlgItem(IDC_SLIDER_THRESHOLD_MID));
+			m_TrackThresholdMid.SetRange(0, 255);
+			m_TrackThresholdMid.SetPos(128);
+			m_CheckMinus.Attach(GetDlgItem(IDC_CHECK_MINUS));
+			m_ThresholdMid.Attach(GetDlgItem(IDC_EDIT_THRESHOLD_MID));
+			SetDlgItemInt(IDC_EDIT_THRESHOLD_MID, 128);
+
 			return TRUE;
+		}
+
+		void OnHScroll(UINT nSBCode, UINT nPos, WTL::CTrackBarCtrl pTrackBar)
+		{
+			switch (nSBCode)
+			{
+			default:
+				break;
+			case TB_THUMBPOSITION:
+			case TB_THUMBTRACK: // TB_ENDTRACK
+			{
+				auto pos = pTrackBar.GetPos();
+				auto id = pTrackBar.GetDlgCtrlID();
+				switch (id)
+				{
+				default:
+					break;
+				case IDC_SLIDER_KERNEL_SIZE:
+					SetDlgItemInt(IDC_EDIT_KERNEL_X, pos%2==0?pos+1:pos);
+					break;
+				case IDC_SLIDER_THRESHOLD_MID:
+					SetDlgItemInt(IDC_EDIT_THRESHOLD_MID, pos);
+					break;
+				}
+			}
+			break;
+			}
 		}
 
 		void OnCommand(UINT uNotifyCode, int nID, CWindow wndCtl)
@@ -93,15 +144,19 @@ namespace freeze {
 				OnKernelXChanged(uNotifyCode);
 				break;
 			case IDC_EDIT_KERNEL_Y: // Y核值
-
+				// nothing
 				break;
 			case IDC_EDIT_SIGMA_X: // X标准偏差
 				OnSigmaXChanged(uNotifyCode);
 				break;
 			case IDC_EDIT_SIGMA_Y: // Y标准偏差
+				// nothing
 				break;
 			case IDC_COMBO_BORDER_TYPE: // 边框类型
 				OnBorderTypeChanged(uNotifyCode);
+				break;
+			case IDC_EDIT_THRESHOLD_MID: // 减影阈值
+				OnThresholdChanged(uNotifyCode);
 				break;
 			}
 		}
@@ -115,13 +170,12 @@ namespace freeze {
 				break;
 			case CBN_SELCHANGE:
 				selected_index = m_ComboBorderType.GetCurSel();
+				if (m_RecvMsgWnd &&(selected_index!=-1))
+				{
+					auto w = MAKEWPARAM(IDC_COMBO_BORDER_TYPE, selected_index);
+					::PostMessage(m_RecvMsgWnd, WM_GAUSSIAN, w, 0);
+				}
 				break;
-			}
-
-			if (m_RecvMsgWnd)
-			{
-				auto w = MAKEWPARAM(IDC_COMBO_BORDER_TYPE, selected_index);
-				::PostMessage(m_RecvMsgWnd, WM_GAUSSIAN, w, 0);
 			}
 		}
 
@@ -161,10 +215,22 @@ namespace freeze {
 			}
 		}
 
+		void OnThresholdChanged(UINT uNotifyCode)
+		{
+			IDC_EDIT_THRESHOLD_MID;
+			if (uNotifyCode == EN_CHANGE)
+			{
+				if (m_RecvMsgWnd)
+				{
+					auto value = GetDlgItemInt(IDC_EDIT_THRESHOLD_MID);
+					auto w = MAKEWPARAM(IDC_EDIT_THRESHOLD_MID, value);
+					::PostMessage(m_RecvMsgWnd, WM_GAUSSIAN, w, 0);
+				}
+			}
+		}
+
 		void OnKernelYCheck(UINT uNotifyCode, int nID, CWindow wndCtl)
 		{
-			if (!m_RecvMsgWnd)return;
-
 			IDC_CHECK_KERNEL_Y;
 			auto checked = m_CheckKernelY.GetCheck() == BST_CHECKED;
 			m_KernelY.EnableWindow(checked);
@@ -172,10 +238,23 @@ namespace freeze {
 
 		void OnSigmaYCheck(UINT uNotifyCode, int nID, CWindow wndCtl)
 		{
-			if (!m_RecvMsgWnd)return;
 			IDC_CHECK_SIGMA_Y;
 			auto checked = m_CheckSigmaY.GetCheck() == BST_CHECKED;
 			m_SigmaY.EnableWindow(checked);
+		}
+
+		void OnMinusCheck(UINT uNotifyCode, int nID, CWindow wndCtl)
+		{
+			IDC_CHECK_MINUS;
+			auto checked = m_CheckMinus.GetCheck() == BST_CHECKED;
+			m_ThresholdMid.EnableWindow(checked);
+			m_TrackThresholdMid.EnableWindow(checked);
+
+			if (m_RecvMsgWnd)
+			{
+				auto w = MAKEWPARAM(IDC_CHECK_MINUS, checked?1:0);
+				::PostMessage(m_RecvMsgWnd, WM_GAUSSIAN, w, 0);
+			}
 		}
 
 		LRESULT OnCloseCmd(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/)

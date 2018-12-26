@@ -5,6 +5,12 @@
 #define V_APERTURE 3
 #define V_L2 false
 
+#define V_KERNEL_X 3
+#define V_KERNEL_Y 3
+#define V_SIGMA_X 0
+#define V_SIGMA_X 0
+#define V_BORDER_TYPE 0
+
 // 封装图像数据的类
 
 namespace freeze {
@@ -39,9 +45,54 @@ namespace freeze {
 		{
 			HANDLE hEvent;
 			cv::InputArray inArray;
-			cv::InputOutputArray outArray;
-			cv::Scalar color;
+			cv::/*Input*/OutputArray outArray;
 		};
+
+		struct ThresholdParam
+		{
+			unsigned char threshold;
+			unsigned char max_value;
+			int type;//cv::BORDER_DEFAULT
+		};
+
+		struct ThresholdWithArrayParam : ThresholdParam
+		{
+			HANDLE hEvent;
+			cv::InputArray inArray;
+			cv::/*Input*/OutputArray outArray;
+		};
+
+		struct LoGParam
+		{
+			int depth;
+			int ksize;
+			double scale;// 1
+			double delta;// 0
+			int type;// cv::BORDER_DEFAULT
+		};
+
+		struct LoGWithArrayParam : LoGParam
+		{
+			HANDLE hEvent;
+			cv::InputArray inArray;
+			cv::/*Input*/OutputArray outArray;
+		};
+
+		inline int convert_type(int n)
+		{
+			switch (n)
+			{
+			default:return cv::BORDER_DEFAULT;
+			case 0: return cv::BORDER_DEFAULT;
+			case 1: return cv::BORDER_CONSTANT;
+			case 2: return cv::BORDER_REPLICATE;
+			case 3: return cv::BORDER_REFLECT;
+			case 4: return cv::BORDER_WRAP;
+			case 5: return cv::BORDER_REFLECT_101;
+			case 6: return cv::BORDER_TRANSPARENT;
+			case 7: return cv::BORDER_ISOLATED;
+			}
+		}
 
 		inline static DWORD CALLBACK AsyncOpera(LPVOID pParam)
 		{
@@ -58,7 +109,7 @@ namespace freeze {
 				catch (const std::exception& e)
 				{
 					auto reason = e.what();
-					ResetEvent(pCannyParam->hEvent);
+					SetEvent(pCannyParam->hEvent);
 					return FALSE;
 				}
 
@@ -75,7 +126,7 @@ namespace freeze {
 				}
 
 				//PostThreadMessage(pCannyParam->idThread, WM_CANNY_FINISH, 0, 0);
-				ResetEvent(pCannyParam->hEvent);
+				SetEvent(pCannyParam->hEvent);
 				return TRUE;
 			}
 			return FALSE;
@@ -87,39 +138,84 @@ namespace freeze {
 			auto result = WaitForSingleObject(pGaussianParam->hEvent, INFINITE);
 			if (WAIT_OBJECT_0 == result)
 			{
-				cv::Mat ret_mat;
 				try
 				{
 					cv::Size size = { pGaussianParam->x,pGaussianParam->y, };
-					cv::GaussianBlur(pGaussianParam->inArray, ret_mat,
-						size, pGaussianParam->sx, pGaussianParam->sy,pGaussianParam->type);
+					cv::GaussianBlur(pGaussianParam->inArray, pGaussianParam->outArray,
+						size, pGaussianParam->sx, pGaussianParam->sy, pGaussianParam->type);
 				}
 				catch (const std::exception& e)
 				{
 					auto reason = e.what();
-					ResetEvent(pGaussianParam->hEvent);
+					SetEvent(pGaussianParam->hEvent);
 					return FALSE;
 				}
 
-				std::vector<std::vector<cv::Point>> contours;
-				std::vector<cv::Vec4i> hierarchy;
-
-				cv::findContours(ret_mat, contours, hierarchy, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
-				//cv::Scalar color{ 0.0,0.0,255.0, };
-
-#pragma omp parallel for
-				for (int i = 0; i < contours.size(); ++i)
-				{
-					cv::drawContours(pGaussianParam->outArray, contours, i, pGaussianParam->color, 2, cv::LINE_4/*, hierarchy, 0*/);
-				}
-
-				//PostThreadMessage(pGaussianParam->idThread, WM_GAUSSIAN_FINISH, 0, 0);
-				ResetEvent(pGaussianParam->hEvent);
+				SetEvent(pGaussianParam->hEvent);
 				return TRUE;
 			}
 			return FALSE;
 		}
-	}
+
+		inline static DWORD CALLBACK AsyncThreshold(LPVOID pParam)
+		{
+			ThresholdWithArrayParam* pThreshold = reinterpret_cast<ThresholdWithArrayParam*>(pParam);
+			auto result = WaitForSingleObject(pThreshold->hEvent, INFINITE);
+			if (WAIT_OBJECT_0 == result)
+			{
+				cv::Mat ret_mat;
+				try
+				{
+					cv::threshold(pThreshold->inArray, pThreshold->outArray,
+						pThreshold->threshold,
+						pThreshold->max_value,
+						pThreshold->type
+					);
+				}
+				catch (const std::exception& e)
+				{
+					auto reason = e.what();
+					MessageBoxA(nullptr, reason, "error", MB_OK);
+					SetEvent(pThreshold->hEvent);
+					return FALSE;
+				}
+
+				SetEvent(pThreshold->hEvent);
+				return TRUE;
+			}
+			return FALSE;
+		}
+
+		inline static DWORD CALLBACK AsyncLoG(LPVOID pParam)
+		{
+			LoGWithArrayParam* pLoGParam = reinterpret_cast<LoGWithArrayParam*>(pParam);
+			auto result = WaitForSingleObject(pLoGParam->hEvent, INFINITE);
+			if (WAIT_OBJECT_0 == result)
+			{
+				try
+				{
+					cv::Mat out_mat;
+					cv::Size size = { pLoGParam->ksize,pLoGParam->ksize, };
+					cv::GaussianBlur(pLoGParam->inArray, out_mat,
+						size, 0, 0, pLoGParam->type);
+					cv::Laplacian(out_mat, out_mat, CV_8U, pLoGParam->ksize,
+						pLoGParam->scale, pLoGParam->scale, pLoGParam->type);
+					cv::convertScaleAbs(out_mat, pLoGParam->outArray);
+				}
+				catch (const std::exception& e)
+				{
+					auto reason = e.what();
+					SetEvent(pLoGParam->hEvent);
+					return FALSE;
+				}
+
+				SetEvent(pLoGParam->hEvent);
+				return TRUE;
+			}
+			return FALSE;
+		}
+
+	} // end inline namespace
 
 	template<typename ImageData = WTL::CBitmap>
 	class image_any
@@ -143,7 +239,7 @@ namespace freeze {
 
 		explicit image_any(std::wstring const& image_file = L"", HDC dc = nullptr, bool auto_convert = true)
 		{
-			init_event();
+			init_event(FALSE);
 			if (!image_file.empty())
 			{
 				raw_file(image_file);
@@ -187,6 +283,7 @@ namespace freeze {
 			from_file_internal_ref(file, flag);
 		}
 
+		// 创建所有图像的显示图像
 		void create_all_image(HDC dc)
 		{
 			create_raw_bitmap(dc);
@@ -203,6 +300,34 @@ namespace freeze {
 			{
 				create_ref_opera_bitmap(dc);
 			}
+
+			if (use_threshold)
+			{
+				create_threshold_bitmap(dc);
+			}
+		}
+
+		// 创建原始图像位图
+		void create_raw_bitmap(HDC dc)
+		{
+			reset_raw_image();
+
+			// 注意，这里使用了原始数据的克隆。
+			//auto clone_image = mat_raw_clone();
+
+			unsigned char buffer[sizeof(BITMAPINFO) + 0xFF * sizeof(RGBQUAD)];
+			auto bitmap_info = reinterpret_cast<BITMAPINFO*>(buffer);
+			freeze::fill_bitmap_info(bitmap_info, width(), height(), bpp(), image_any<ImageData>::planes);
+
+			raw_image.CreateDIBitmap(
+				dc,
+				&bitmap_info->bmiHeader,
+				CBM_INIT,
+				/*clone_image.data*/image_data_raw.data,
+				bitmap_info,
+				DIB_RGB_COLORS
+			);
+
 		}
 
 		// 创建缺陷图像位图
@@ -215,22 +340,6 @@ namespace freeze {
 			freeze::fill_bitmap_info(bitmap_info, width(), height(), bpp(), image_any<ImageData>::planes);
 
 			defect_image.CreateDIBitmap(dc, &bitmap_info->bmiHeader, CBM_INIT, image_data_defect.data, bitmap_info, DIB_RGB_COLORS);
-		}
-
-		// 创建原始图像位图
-		void create_raw_bitmap(HDC dc)
-		{
-			if (!raw_image)
-			{
-				// 注意，这里使用了原始数据的克隆。
-				auto clone_image = mat_raw_clone();
-
-				unsigned char buffer[sizeof(BITMAPINFO) + 0xFF * sizeof(RGBQUAD)];
-				auto bitmap_info = reinterpret_cast<BITMAPINFO*>(buffer);
-				freeze::fill_bitmap_info(bitmap_info, width(), height(), bpp(), image_any<ImageData>::planes);
-
-				raw_image.CreateDIBitmap(dc, &bitmap_info->bmiHeader, CBM_INIT, clone_image.data, bitmap_info, DIB_RGB_COLORS);
-			}
 		}
 
 		// 创建参考图像算子位图
@@ -274,11 +383,33 @@ namespace freeze {
 			);
 		}
 
+		// 创建二值化位图 直接替换或赋值底层数据
+		void create_threshold_bitmap(HDC dc)
+		{
+			if (threshold_image.IsNull())
+			{
+				threshold_image.CreateCompatibleBitmap(dc, width(), height());
+			}
+
+			unsigned char buffer[sizeof(BITMAPINFO) + 0xFF * sizeof(RGBQUAD)];
+			auto bitmap_info = reinterpret_cast<BITMAPINFO*>(buffer);
+			freeze::fill_bitmap_info(bitmap_info, width(), height(), bpp(), image_any<ImageData>::planes);
+
+			threshold_image.SetDIBits(
+				dc,
+				0,
+				height(),
+				image_data_threshold.data,
+				bitmap_info,
+				DIB_RGB_COLORS
+			);
+		}
+
 		// 运算
 	public:
 		void canny(double threshold1, double threshold2, int aperture, bool l2 = false)
 		{
-			
+			set_event();
 			if (use_ref_image_data && !image_data_ref.empty())
 			{
 				// 每次运行，算子数据都需要重置为原始数据的副本
@@ -289,7 +420,7 @@ namespace freeze {
 				);
 
 				// 重置事件
-				SetEvent(opear_event);
+				//SetEvent(opear_event);
 
 				CannyWithArrayParam param = {
 					threshold1,
@@ -315,7 +446,7 @@ namespace freeze {
 			reset_data_opera();
 
 			// 重置事件
-			SetEvent(opear_event);
+			//SetEvent(opear_event);
 
 			cv::Mat out_mat = cv::Mat::zeros(
 				image_data_opera.size(),
@@ -353,27 +484,28 @@ namespace freeze {
 
 		void gaussian_blur(int x, int y, double sigma_x, double sigma_y = 0, int border = cv::BORDER_DEFAULT)
 		{
+			set_event();
 			if (use_ref_image_data && !image_data_ref.empty())
 			{
 				// 每次运行，算子数据都需要重置为原始数据的副本
 				reset_data_ref_opera();
 				cv::Mat out_ref_mat = cv::Mat::zeros(
 					image_data_ref_opera.size(),
-					CV_8UC3
+					CV_8UC3/*CV_8UC1*/
 				);
 
 				// 重置事件
-				SetEvent(opear_event);
+				//SetEvent(opear_event);
 
 				GaussianWithArrayParam param = {
-					threshold1,
-					threshold2,
-					aperture,
-					l2,
+					x,
+					y,
+					sigma_x,
+					sigma_y,
+					border,
 					opear_event,
 					image_data_ref_opera,
 					out_ref_mat,
-					cv::Scalar{0.0,255.0,0.0},
 				};
 
 				auto hRefThread = CreateThread(nullptr, 0, AsyncGaussian, &param, 0, nullptr);
@@ -389,21 +521,20 @@ namespace freeze {
 			reset_data_opera();
 
 			// 重置事件
-			SetEvent(opear_event);
-
+			//SetEvent(opear_event);
 			cv::Mat out_mat = cv::Mat::zeros(
 				image_data_opera.size(),
-				CV_8UC3
+				CV_8UC3/*CV_8UC1*/
 			);
 			GaussianWithArrayParam param = {
-				threshold1,
-				threshold2,
-				aperture,
-				l2,
+				x,
+				y,
+				sigma_x,
+				sigma_y,
+				border,
 				opear_event,
 				image_data_opera,
-				out_mat,
-				cv::Scalar{ 0.0,0.0,255.0 },
+				out_mat
 			};
 
 			auto hThread = CreateThread(nullptr, 0, AsyncGaussian, &param, 0, nullptr);
@@ -413,6 +544,103 @@ namespace freeze {
 				set_data_opera(out_mat);
 			}
 			CloseHandle(hThread);
+		}
+
+		// 减影 -- 原图像 - 高斯模糊
+		void minus_image()
+		{
+			auto minus_image = static_cast<cv::Mat>((image_data_raw - image_data_opera) + cv::Scalar{ 128 });
+			set_data_opera(minus_image);
+		}
+
+		// 二值化
+		void threshold(unsigned char threshold, unsigned char max_value = 255, int type = cv::THRESH_BINARY)
+		{
+			set_event();
+
+			reset_data_threshold();
+
+			cv::Mat out_mat = cv::Mat::zeros(
+				image_data_threshold.size(),
+				CV_8UC3/*CV_8UC1*/
+			);
+			ThresholdWithArrayParam param = {
+					threshold,
+					max_value,
+					type,
+					opear_event,
+					image_data_threshold,
+					out_mat,
+			};
+
+			auto hRefThread = CreateThread(nullptr, 0, AsyncThreshold, &param, 0, nullptr);
+			auto result = WaitForSingleObject(hRefThread, INFINITE);
+			if (WAIT_OBJECT_0 == result)
+			{
+				//并行
+#pragma omp parallel for
+				for (int i = 0; i < out_mat.rows; ++i)
+				{
+					for (int j = 0; j < out_mat.cols; ++j)
+					{
+						auto& color = out_mat.at<cv::Vec3b>(i, j);
+						if (color == cv::Vec3b{ 255,255,255 })
+						{
+							color = cv::Vec3b{ 0,0,255 };
+						}
+					}
+				}
+				set_data_threshold(out_mat);
+			}
+			CloseHandle(hRefThread);
+		}
+
+		// LoG算子也就是 Laplace of Gaussian function（高斯拉普拉斯函数）。常用于数字图像的边缘提取和二值化。
+		void laplacian_of_gaussian(int ksize,
+			int depth = CV_8U,
+			double scale = 1.0,
+			double delta = 0.0,
+			int type = cv::BORDER_DEFAULT)
+		{
+			set_event();
+
+			reset_data_log();
+
+			cv::Mat out_mat = cv::Mat::zeros(
+				image_data_log.size(),
+				CV_8UC3/*CV_8UC1*/
+			);
+			ThresholdWithArrayParam param = {
+					ksize,
+					depth,
+					scale,
+					delta,
+					type,
+					opear_event,
+					image_data_log,
+					out_mat,
+			};
+
+			auto hRefThread = CreateThread(nullptr, 0, AsyncLoG, &param, 0, nullptr);
+			auto result = WaitForSingleObject(hRefThread, INFINITE);
+			if (WAIT_OBJECT_0 == result)
+			{
+				//并行
+#pragma omp parallel for
+				for (int i = 0; i < out_mat.rows; ++i)
+				{
+					for (int j = 0; j < out_mat.cols; ++j)
+					{
+						auto& color = out_mat.at<cv::Vec3b>(i, j);
+						if (color == cv::Vec3b{ 255,255,255 })
+						{
+							color = cv::Vec3b{ 0,0,255 };
+						}
+					}
+				}
+				set_data_log(out_mat);
+			}
+			CloseHandle(hRefThread);
 		}
 
 		// 属性
@@ -457,12 +685,34 @@ namespace freeze {
 
 		void set_data_opera(cv::Mat const& mat)
 		{
-			image_data_opera = mat/*.clone()*/;
+			image_data_opera = mat.clone();
 		}
 
 		void set_data_ref_opera(cv::Mat const& mat)
 		{
 			image_data_ref_opera = mat/*.clone()*/;
+		}
+
+		void set_data_threshold(cv::Mat const& mat)
+		{
+			image_data_threshold = mat/*.clone()*/;
+		}
+
+		void set_data_log(cv::Mat const& mat)
+		{
+			image_data_log = mat/*.clone()*/;
+		}
+
+		// 重置数据(二值化)--从image_data_opera数据中
+		void reset_data_threshold()
+		{
+			image_data_threshold = image_data_opera.clone();
+		}
+
+		// 重置数据LoG算子--从原始数据中
+		void reset_data_log()
+		{
+			image_data_log = image_data_raw.clone();
 		}
 
 		// 重置数据--从原始数据中
@@ -507,6 +757,17 @@ namespace freeze {
 			use_ref_image_data = use_ref;
 		}
 
+		// 使用二值化图像
+		void set_use_threshold(bool use = true)
+		{
+			use_threshold = use;
+		}
+
+		bool is_use_threshold() const
+		{
+			return use_threshold;
+		}
+
 		// 当图像切换时,自动应用算子
 		void set_auto_use_operator(bool use = true)
 		{
@@ -517,6 +778,18 @@ namespace freeze {
 		bool is_auto_use_operator() const
 		{
 			return use_operator;
+		}
+
+		// 当图像切换时,自动应用高斯模糊
+		void set_auto_use_gaussian(bool use = true)
+		{
+			use_gaussian = use;
+		}
+
+		// 是否自动应用高斯模糊
+		bool is_auto_use_gaussian() const
+		{
+			return use_gaussian;
 		}
 
 		// 仅显示原始图像
@@ -580,20 +853,6 @@ namespace freeze {
 				defect_dc.RestoreDC(-1);
 			}
 
-			BLACKNESS; //纯黑
-			WHITENESS; //纯白
-			PATPAINT; //纯白
-			CAPTUREBLT;
-			NOMIRRORBITMAP;
-			PATCOPY;//纯白(画刷颜色)
-			PATINVERT;DSTINVERT;//背景色反转，无前景色。
-
-			MERGECOPY; SRCCOPY;//前景色
-			MERGEPAINT; NOTSRCCOPY;// 背景色变白，前景色反转，有明暗变化
-			NOTSRCERASE; // 背景色反转，前景色反转，有明暗变化
-			SRCAND; //前景色，有明暗变化
-			SRCERASE;//前景色，有明暗变化(变化与SRCAND相反)
-
 			// 绘制算子图像
 			if (!opera_image.IsNull())
 			{
@@ -623,6 +882,17 @@ namespace freeze {
 				ref_opera_dc.RestoreDC(-1);
 			}
 
+			// 绘制二值化图像
+			if (use_threshold && !threshold_image.IsNull())
+			{
+				WTL::CDC threshold_dc;
+				threshold_dc.CreateCompatibleDC(temp_dc);
+				threshold_dc.SaveDC();
+				threshold_dc.SelectBitmap(threshold_image);
+				//temp_dc.BitBlt(0, 0, width(), height(), threshold_dc, 0, 0, SRCPAINT);
+				temp_dc.TransparentBlt(0, 0, width(), height(), threshold_dc, 0, 0, width(), height(), RGB(0, 0, 0));
+				threshold_dc.RestoreDC(-1);
+			}
 
 			mem_dc.BitBlt(offset_x, offset_y, width(), height(), temp_dc, 0, 0, SRCCOPY);
 			temp_dc.RestoreDC(-1);
@@ -705,6 +975,17 @@ namespace freeze {
 				opera_dc.RestoreDC(-1);
 			}
 
+			// 绘制二值化图像
+			if (use_threshold && !threshold_image.IsNull())
+			{
+				WTL::CDC threshold_dc;
+				threshold_dc.CreateCompatibleDC(temp_dc);
+				threshold_dc.SaveDC();
+				threshold_dc.SelectBitmap(threshold_image);
+				temp_dc.BitBlt(0, 0, width(), height(), threshold_dc, 0, 0, SRCPAINT);
+				threshold_dc.RestoreDC(-1);
+			}
+
 			mem_dc.BitBlt(offset_x, offset_y, width(), height(), temp_dc, 0, 0, SRCCOPY);
 			temp_dc.RestoreDC(-1);
 
@@ -759,41 +1040,71 @@ namespace freeze {
 			}
 		}
 
+		// 销毁原始图像的显示图像
+		void reset_raw_image()
+		{
+			if (!raw_image.IsNull())
+			{
+				raw_image.DeleteObject();
+			}
+		}
+
 	private:
 		// 指示算子正在运算中的事件
 		HANDLE opear_event = nullptr;
 
-		void init_event()
+		void init_event(BOOL manual = TRUE)
 		{
 			if (opear_event)
 			{
 				CloseHandle(opear_event);
 			}
-			opear_event = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+			opear_event = CreateEvent(nullptr, manual, FALSE, nullptr);
 			//CloseHandle(opear_event);
 		}
+
+		bool set_event()
+		{
+			if (!opear_event)return false;
+			return SetEvent(opear_event) == TRUE;
+		}
+
 
 	private:
 		constexpr static auto depth = 8;
 		// BMP 位图的平面数必须为1
 		constexpr static auto planes = 1;
 
+		// 不做运算
+
 		cv::Mat image_data_raw; // 某一幅待检测图像数据(缓存)
-		cv::Mat image_data_opera; // 运算数据(原始图像数据的副本,image_data_raw.clone())，将算子作用于此数据
 		cv::Mat image_data_defect; // 不做运算，仅用于显示和对比
 		cv::Mat image_data_ref; // 固定的参考图像的数据(标准图像数据)(缓存)
-		cv::Mat image_data_ref_opera; // 参考图像的运算数据(参考图像的副本，image_data_ref.clone())
 
-		ImageData opera_image; // 算子图像
+		// 运算
+
+		cv::Mat image_data_opera; // 运算数据(原始图像数据的副本,image_data_raw.clone())，将算子作用于此数据
+		//cv::Mat image_data_gaussian; // 运算数据(原始图像数据的副本,image_data_raw.clone())，将高斯作用于此数据
+		cv::Mat image_data_ref_opera; // 参考图像的运算数据(参考图像的副本，image_data_ref.clone())
+		//cv::Mat image_data_minus; //减影图像数据 (raw-gaussian)
+		cv::Mat image_data_threshold; // 二值化图像数据
+		cv::Mat image_data_log; // LoG算子
+
 		ImageData raw_image; // 原始图像
 		ImageData defect_image; //缺陷图像
+
+		ImageData opera_image; // 算子图像
 		ImageData ref_opera_image; // 参考图像的算子图像
+		ImageData threshold_image; // 二值化图像
+		ImageData l_o_g_image;// LoG算子图像
 
 		bool exclude_other = false; // 排除其它图像的显示，仅显示原始图像
 		bool exclude_defect = false; // 单独排除缺陷图像的显示
 
 		bool use_operator = false; // 自动加载算子，控制图像数据切换时是否自动运算相应的算子。
+		bool use_gaussian = false; // 自动加载高斯模糊，控制图像数据切换时是否自动运算相应的高斯模糊。
 		bool use_ref_image_data = false; //使用参考图像数据(使用算子时)
+		bool use_threshold = false; // 使用二值化图像
 	};
 
 	using bmp_image = image_any<>;

@@ -106,7 +106,8 @@ namespace freeze {
 			{
 			default:
 				break;
-			case TB_ENDTRACK: // TB_THUMBTRACK
+			case TB_THUMBPOSITION:
+			case TB_THUMBTRACK: // TB_ENDTRACK
 			{
 				auto pos = pTrackBar.GetPos();
 				auto id = pTrackBar.GetDlgCtrlID();

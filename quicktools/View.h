@@ -11,6 +11,20 @@ inline freeze::CannyParam g_CannyParam{
 	false,
 };
 
+inline freeze::GaussianParam g_GaussianParam{
+	V_KERNEL_X,
+	V_KERNEL_Y,
+	V_SIGMA_X,
+	V_SIGMA_X,
+	V_BORDER_TYPE,
+};
+
+inline freeze::ThresholdParam g_ThresholdParam{
+	128,
+	255,
+	0,
+};
+
 class CView :
 	public WTL::CScrollWindowImpl<CView>
 {
@@ -21,6 +35,8 @@ public:
 
 	// TODO: 是否自动显示参考图像
 	bool m_ShowRefImage = false;
+	// 启动|禁用减影
+	bool m_EnableMinus = false;
 
 	BOOL PreTranslateMessage(MSG* pMsg)
 	{
@@ -52,10 +68,18 @@ public:
 		//m_CannyParam;
 	}
 
+	// 作用于参考图像(参考图像是一张指定的标准图像)
 	void ShowRefImage(bool show = false)
 	{
 		m_ShowRefImage = show;
 		m_Bitmap.set_use_ref_data(m_ShowRefImage);
+	}
+
+	// 启用减影操作(高斯模糊时)
+	void EnableMinus(bool enable = false)
+	{
+		m_EnableMinus = enable;
+		m_Bitmap.set_use_threshold(enable);
 	}
 
 	void SetBitmap2(std::wstring const& file, std::wstring const& detectfile = L"", bool auto_scroll = true)
@@ -76,6 +100,30 @@ public:
 				g_CannyParam.aperture,
 				g_CannyParam.l2
 			);
+		}
+
+		if (m_Bitmap.is_auto_use_gaussian())
+		{
+			m_Bitmap.gaussian_blur(
+				g_GaussianParam.x,
+				g_GaussianParam.y,
+				g_GaussianParam.sx,
+				g_GaussianParam.sy,
+				g_GaussianParam.type
+			);
+
+			if (m_EnableMinus)
+			{
+				m_Bitmap.minus_image();
+				if (m_Bitmap.is_use_threshold())
+				{
+					m_Bitmap.threshold(
+						g_ThresholdParam.threshold,
+						g_ThresholdParam.max_value,
+						g_ThresholdParam.type
+					);
+				}
+			}
 		}
 
 		ResetBitmap();
@@ -141,7 +189,9 @@ public:
 		// 启用拖放支持
 		::DragAcceptFiles(this->m_hWnd, TRUE);
 		// 启用自动应用算子
-		m_Bitmap.set_auto_use_operator();
+		//m_Bitmap.set_auto_use_operator();
+		// 启用自动应用高斯模糊
+		m_Bitmap.set_auto_use_gaussian();
 
 		SetMsgHandled(FALSE);
 		return 0;
@@ -244,27 +294,40 @@ public:
 		int sx = 0;
 		int type = 4;
 
+		unsigned char threshold = 0;
+
 		switch (nID)
 		{
 		default:
 			break;
-		case IDC_THRESHOLD_EDIT_1: // 阈值1
-			g_CannyParam.threshold1 = value;
+		case IDC_EDIT_KERNEL_X: // x
+			g_GaussianParam.x = value;
+			g_GaussianParam.y = value;
 			break;
-		case IDC_THRESHOLD_EDIT_2: // 阈值2
-			g_CannyParam.threshold2 = value;
+		case IDC_EDIT_KERNEL_Y: // y
+			g_GaussianParam.y = value;
 			break;
-		case IDC__APERTURE_EDIT: // 孔洞
-			g_CannyParam.aperture = value;
+		case IDC_EDIT_SIGMA_X: // sx
+			g_GaussianParam.sx = value;
+			g_GaussianParam.sy = value;
 			break;
-		case IDC_L2GRADIENT_CHECK: // L2
-			g_CannyParam.l2 = value == 1 ? true : false;
+		case IDC_EDIT_SIGMA_Y: // L2
+			g_GaussianParam.sy = value;
 			break;
-		case ID_RESET_BTN: // 重置Canny参数
-			g_CannyParam.threshold1 = threshold1;
-			g_CannyParam.threshold2 = threshold2;
-			g_CannyParam.aperture = aperture;
-			g_CannyParam.l2 = l2;
+		case IDC_COMBO_BORDER_TYPE:
+			g_GaussianParam.type = freeze::convert_type(value);
+			break;
+		case IDC_CHECK_MINUS: // 启用|禁用减影
+			EnableMinus(value ? true : false);
+			break;
+		case IDC_EDIT_THRESHOLD_MID: // 减影阈值
+			g_ThresholdParam.threshold = static_cast<unsigned char>(value);
+			break;
+		case ID_RESET_BTN: // 重置Gaussian参数
+			g_GaussianParam.x = x;
+			g_GaussianParam.y = y;
+			g_GaussianParam.sx = g_GaussianParam.sy = sx;
+			g_GaussianParam.type = type;
 			break;
 		case IDC_CHECK_RESET_RAW://原始图像
 			if (m_Bitmap)
@@ -287,12 +350,26 @@ public:
 		{
 			if (!m_Bitmap.show_raw_only())
 			{
-				m_Bitmap.canny(
-					g_CannyParam.threshold1,
-					g_CannyParam.threshold2,
-					g_CannyParam.aperture,
-					g_CannyParam.l2
+				m_Bitmap.gaussian_blur(
+					g_GaussianParam.x,
+					g_GaussianParam.y,
+					g_GaussianParam.sx,
+					g_GaussianParam.sy,
+					g_GaussianParam.type
 				);
+
+				if (m_EnableMinus)
+				{
+					m_Bitmap.minus_image();
+					if (m_Bitmap.is_use_threshold())
+					{
+						m_Bitmap.threshold(
+							g_ThresholdParam.threshold,
+							g_ThresholdParam.max_value,
+							g_ThresholdParam.type
+						);
+					}
+				}
 			}
 
 			ResetBitmap();

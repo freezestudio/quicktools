@@ -320,6 +320,9 @@ public:
 		bool show_ref_image = m_CannyDlg.IsRefImageShow();
 		pView->ShowRefImage(show_ref_image);
 
+		bool enable_minus = m_GaussianDlg.CanUseMinus();
+		pView->EnableMinus(enable_minus);
+
 		if (m_RefImage.empty())
 		{
 			m_RefImageInited = false;
