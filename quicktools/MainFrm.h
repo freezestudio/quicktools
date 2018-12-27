@@ -38,8 +38,11 @@ public:
 
 	// TODO: 当用户激活时的处理
 	CView* m_pActiveView = nullptr;
+
+	// 对话框
 	freeze::CCannyDlg m_CannyDlg;
 	freeze::CGaussianDlg m_GaussianDlg;
+	freeze::CLaplacianOfGaussianDlg m_LaplacianOfGaussianDlg;
 
 	virtual BOOL PreTranslateMessage(MSG* pMsg)
 	{
@@ -77,12 +80,14 @@ public:
 		COMMAND_ID_HANDLER_EX(ID_OPERATOR_LAPLACIAN, OnLaplacian)
 		COMMAND_ID_HANDLER_EX(ID_OPERATOR_SOBEL, OnSobel)
 		COMMAND_ID_HANDLER_EX(ID_OPERATOR_GAUSSIAN, OnGaussion)
+		COMMAND_ID_HANDLER_EX(ID_OPERATOR_LAPLACIANOFGAUSSIAN, OnLaplacianOfGaussion)
 		COMMAND_RANGE_HANDLER_EX(ID_WINDOW_TABFIRST, ID_WINDOW_TABLAST, OnWindowActivate)
 		MESSAGE_HANDLER_EX(WM_OPEN_IMAGE, OnOpenImage)
 		MESSAGE_HANDLER_EX(WM_OPEN_REF_IMAGE, OnOpenRefImage)
 		MESSAGE_HANDLER_EX(WM_OPEN_IMAGE_WITH_DETECT, OnOpenImageWithDetect)
 		MESSAGE_HANDLER_EX(WM_CANNY, OnCannyHandler)
 		MESSAGE_HANDLER_EX(WM_GAUSSIAN, OnGaussianHandler)
+		MESSAGE_HANDLER_EX(WM_LAPLACIAN_OF_GAUSSIAN, OnLaplacianOfGaussianHandler)
 		CHAIN_MSG_MAP(WTL::CUpdateUI<CMainFrame>)
 		CHAIN_MSG_MAP(WTL::CFrameWindowImpl<CMainFrame>)
 	END_MSG_MAP()
@@ -177,6 +182,10 @@ public:
 		m_GaussianDlg.Create(this->m_hWnd);
 		m_GaussianDlg.SetRecvMessageWindow(this->m_hWnd);
 
+		// LoG对话框
+		m_LaplacianOfGaussianDlg.Create(this->m_hWnd);
+		m_LaplacianOfGaussianDlg.SetRecvMessageWindow(this->m_hWnd);
+
 		return 0;
 	}
 
@@ -216,6 +225,21 @@ public:
 		if (m_pActiveView)
 		{
 			m_pActiveView->PostMessage(WM_GAUSSIAN, wParam, lParam);
+		}
+		else
+		{
+			//WTL::AtlMessageBox(this->m_hWnd, L"没有活动视图", L"警告", MB_OK | MB_ICONWARNING);
+		}
+		SetMsgHandled(FALSE);
+		return 0;
+	}
+
+	// LoG算子参数
+	LRESULT OnLaplacianOfGaussianHandler(UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		if (m_pActiveView)
+		{
+			m_pActiveView->PostMessage(WM_LAPLACIAN_OF_GAUSSIAN, wParam, lParam);
 		}
 		else
 		{
@@ -436,6 +460,17 @@ public:
 		if (m_pActiveView)
 		{
 			m_pActiveView->PostMessage(WM_GAUSSIAN, 0, 0);
+		}
+	}
+
+	// Menu -> Operator -> L-o-G
+	void OnLaplacianOfGaussion(UINT /*uNotifyCode*/, int /*nID*/, CWindow /*wndCtl*/)
+	{
+		m_LaplacianOfGaussianDlg.ShowWindow(SW_SHOW);
+
+		if (m_pActiveView)
+		{
+			m_pActiveView->PostMessage(WM_LAPLACIAN_OF_GAUSSIAN, 0, 0);
 		}
 	}
 

@@ -62,7 +62,7 @@ namespace freeze {
 			cv::/*Input*/OutputArray outArray;
 		};
 
-		struct LoGParam
+		struct LaplacianOfGaussianParam
 		{
 			int depth;
 			int ksize;
@@ -71,7 +71,7 @@ namespace freeze {
 			int type;// cv::BORDER_DEFAULT
 		};
 
-		struct LoGWithArrayParam : LoGParam
+		struct LaplacianOfGaussianWithArrayParam : LaplacianOfGaussianParam
 		{
 			HANDLE hEvent;
 			cv::InputArray inArray;
@@ -186,9 +186,9 @@ namespace freeze {
 			return FALSE;
 		}
 
-		inline static DWORD CALLBACK AsyncLoG(LPVOID pParam)
+		inline static DWORD CALLBACK AsyncLaplacianOfGaussian(LPVOID pParam)
 		{
-			LoGWithArrayParam* pLoGParam = reinterpret_cast<LoGWithArrayParam*>(pParam);
+			LaplacianOfGaussianWithArrayParam* pLoGParam = reinterpret_cast<LaplacianOfGaussianWithArrayParam*>(pParam);
 			auto result = WaitForSingleObject(pLoGParam->hEvent, INFINITE);
 			if (WAIT_OBJECT_0 == result)
 			{
@@ -199,7 +199,7 @@ namespace freeze {
 					cv::GaussianBlur(pLoGParam->inArray, out_mat,
 						size, 0, 0, pLoGParam->type);
 					cv::Laplacian(out_mat, out_mat, CV_8U, pLoGParam->ksize,
-						pLoGParam->scale, pLoGParam->scale, pLoGParam->type);
+						pLoGParam->scale, pLoGParam->delta, pLoGParam->type);
 					cv::convertScaleAbs(out_mat, pLoGParam->outArray);
 				}
 				catch (const std::exception& e)
@@ -295,10 +295,10 @@ namespace freeze {
 				create_defect_bitmap(dc);
 			}
 
-			if (use_operator)
-			{
+			//if (use_operator)
+			//{
 				create_opera_bitmap(dc);
-			}
+			//}
 
 			if (use_ref_image_data)
 			{
@@ -600,8 +600,10 @@ namespace freeze {
 			CloseHandle(hRefThread);
 		}
 
-		// LoG算子也就是 Laplace of Gaussian function（高斯拉普拉斯函数）。常用于数字图像的边缘提取和二值化。
-		void laplacian_of_gaussian(int ksize,
+		// LoG算子也就是 Laplacian of Gaussian function（高斯拉普拉斯函数）。
+		// 常用于数字图像的边缘提取和二值化。
+		void laplacian_of_gaussian(
+			int ksize,
 			int depth = CV_8U,
 			double scale = 1.0,
 			double delta = 0.0,
@@ -609,41 +611,41 @@ namespace freeze {
 		{
 			set_event();
 
-			reset_data_log();
+			reset_data_opera();
 
 			cv::Mat out_mat = cv::Mat::zeros(
-				image_data_log.size(),
+				image_data_opera.size(),
 				CV_8UC3/*CV_8UC1*/
 			);
-			ThresholdWithArrayParam param = {
-					ksize,
+			LaplacianOfGaussianWithArrayParam param = {
 					depth,
+					static_cast<unsigned char>(ksize),
 					scale,
 					delta,
 					type,
 					opear_event,
-					image_data_log,
+					image_data_opera,
 					out_mat,
 			};
 
-			auto hRefThread = CreateThread(nullptr, 0, AsyncLoG, &param, 0, nullptr);
+			auto hRefThread = CreateThread(nullptr, 0, AsyncLaplacianOfGaussian, &param, 0, nullptr);
 			auto result = WaitForSingleObject(hRefThread, INFINITE);
 			if (WAIT_OBJECT_0 == result)
 			{
-				//并行
-#pragma omp parallel for
-				for (int i = 0; i < out_mat.rows; ++i)
-				{
-					for (int j = 0; j < out_mat.cols; ++j)
-					{
-						auto& color = out_mat.at<cv::Vec3b>(i, j);
-						if (color == cv::Vec3b{ 255,255,255 })
-						{
-							color = cv::Vec3b{ 0,0,255 };
-						}
-					}
-				}
-				set_data_log(out_mat);
+//				//并行
+//#pragma omp parallel for
+//				for (int i = 0; i < out_mat.rows; ++i)
+//				{
+//					for (int j = 0; j < out_mat.cols; ++j)
+//					{
+//						auto& color = out_mat.at<cv::Vec3b>(i, j);
+//						if (color == cv::Vec3b{ 255,255,255 })
+//						{
+//							color = cv::Vec3b{ 0,0,255 };
+//						}
+//					}
+//				}
+				set_data_opera(out_mat);
 			}
 			CloseHandle(hRefThread);
 		}
@@ -703,10 +705,10 @@ namespace freeze {
 			image_data_threshold = mat/*.clone()*/;
 		}
 
-		void set_data_log(cv::Mat const& mat)
-		{
-			image_data_log = mat/*.clone()*/;
-		}
+		//void set_data_log(cv::Mat const& mat)
+		//{
+		//	image_data_log = mat/*.clone()*/;
+		//}
 
 		// 重置数据(二值化)--从image_data_opera数据中
 		void reset_data_threshold()
@@ -714,11 +716,11 @@ namespace freeze {
 			image_data_threshold = image_data_opera.clone();
 		}
 
-		// 重置数据LoG算子--从原始数据中
-		void reset_data_log()
-		{
-			image_data_log = image_data_raw.clone();
-		}
+		//// 重置数据LoG算子--从原始数据中
+		//void reset_data_log()
+		//{
+		//	image_data_log = image_data_raw.clone();
+		//}
 
 		// 重置数据--从原始数据中
 		void reset_data_opera()
@@ -795,6 +797,18 @@ namespace freeze {
 		bool is_auto_use_gaussian() const
 		{
 			return use_gaussian;
+		}
+
+		// 当图像切换时,自动应用LOG
+		void set_auto_use_laplacian_of_gaussian(bool use = true)
+		{
+			use_laplacian_of_gaussian = use;
+		}
+
+		// 是否自动应用LoG算子
+		bool is_auto_use_laplacian_of_gaussian() const
+		{
+			return use_laplacian_of_gaussian;
 		}
 
 		// 仅显示原始图像
@@ -1089,11 +1103,11 @@ namespace freeze {
 		// 运算
 
 		cv::Mat image_data_opera; // 运算数据(原始图像数据的副本,image_data_raw.clone())，将算子作用于此数据
-		//cv::Mat image_data_gaussian; // 运算数据(原始图像数据的副本,image_data_raw.clone())，将高斯作用于此数据
 		cv::Mat image_data_ref_opera; // 参考图像的运算数据(参考图像的副本，image_data_ref.clone())
+		//cv::Mat image_data_gaussian; // 运算数据(原始图像数据的副本,image_data_raw.clone())，将高斯作用于此数据
 		//cv::Mat image_data_minus; //减影图像数据 (raw-gaussian)
 		cv::Mat image_data_threshold; // 二值化图像数据
-		cv::Mat image_data_log; // LoG算子
+		//cv::Mat image_data_log; // LoG算子
 
 		ImageData raw_image; // 原始图像
 		ImageData defect_image; //缺陷图像
@@ -1108,6 +1122,7 @@ namespace freeze {
 
 		bool use_operator = false; // 自动加载算子，控制图像数据切换时是否自动运算相应的算子。
 		bool use_gaussian = false; // 自动加载高斯模糊，控制图像数据切换时是否自动运算相应的高斯模糊。
+		bool use_laplacian_of_gaussian = false; // 自动加载LOG，控制图像数据切换时是否自动运算相应的LOG。
 		bool use_ref_image_data = false; //使用参考图像数据(使用算子时)
 		bool use_threshold = false; // 使用二值化图像
 	};

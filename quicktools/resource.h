@@ -35,9 +35,11 @@
 #define IDC_EDIT_THRESHOLD_MID          1018
 #define IDC_SLIDER_THRESHOLD_MID        1019
 #define IDC_SLIDER_LOG_KERNEL           1020
-#define IDC_EDIT1                       1021
 #define IDC_EDIT_LOG_KERNEL             1021
 #define ID_RESET_LOG                    1022
+#define IDC_CHECK_LOG_MINUS             1023
+#define IDC_EDIT_THRESHOLD_LOG          1024
+#define IDC_SLIDER_THRESHOLD_LOG        1025
 #define ID_WINDOW_CLOSE                 32772
 #define ID_WINDOW_CLOSE_ALL             32773
 #define ID_CLV_32776                    32776
@@ -60,7 +62,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        214
 #define _APS_NEXT_COMMAND_VALUE         32789
-#define _APS_NEXT_CONTROL_VALUE         1023
+#define _APS_NEXT_CONTROL_VALUE         1026
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

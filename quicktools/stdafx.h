@@ -68,10 +68,14 @@ extern WTL::CAppModule _Module;
 
 #define WM_GAUSSIAN WM_USER + 108
 
+// see laplacian_of_gaussian_dlg
+
+#define WM_LAPLACIAN_OF_GAUSSIAN WM_USER + 109
+
 // see image_data.h
 
 // 完成一次Canny算子的运算时
-#define WM_CANNY_FINISH WM_USER + 109
+#define WM_CANNY_FINISH WM_USER + 110
 
 
 #if defined _M_IX86

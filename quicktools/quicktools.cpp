@@ -20,6 +20,7 @@
 #include "aboutdlg.h"
 #include "dlgs/canny_dlg.h"
 #include "dlgs/gaussian_dlg.h"
+#include "dlgs/laplacian_of_gaussian_dlg.h"
 #include "View.h"
 #include "MainFrm.h"
 

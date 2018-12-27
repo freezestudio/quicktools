@@ -92,6 +92,9 @@
     <ClInclude Include="pane\dock_opera_pane_item.h">
       <Filter>Header Files\pane</Filter>
     </ClInclude>
+    <ClInclude Include="dlgs\laplacian_of_gaussian_dlg.h">
+      <Filter>Header Files\dlgs</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="quicktools.rc">

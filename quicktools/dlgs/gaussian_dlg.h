@@ -29,7 +29,7 @@ namespace freeze {
 		// 接收此对话框发出的消息的窗口
 		HWND m_RecvMsgWnd = nullptr;
 
-		BEGIN_MSG_MAP_EX(CCannyDlg)
+		BEGIN_MSG_MAP_EX(CGaussianDlg)
 			MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
 			COMMAND_ID_HANDLER(IDOK, OnCloseCmd)
 			COMMAND_ID_HANDLER(IDCANCEL, OnCloseCmd)
@@ -275,7 +275,7 @@ namespace freeze {
 			//m_L2Gradient.SetCheck(BST_UNCHECKED);
 
 			//auto w = MAKEWPARAM(ID_RESET_BTN, 0);
-			//::PostMessage(m_RecvMsgWnd, WM_CANNY, w, 0);
+			//::PostMessage(m_RecvMsgWnd, WM_GAUSSIAN, w, 0);
 
 			return 0;
 		}

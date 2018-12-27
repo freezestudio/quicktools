@@ -224,6 +224,7 @@
     <ClInclude Include="AboutDlg.h" />
     <ClInclude Include="dlgs\canny_dlg.h" />
     <ClInclude Include="dlgs\gaussian_dlg.h" />
+    <ClInclude Include="dlgs\laplacian_of_gaussian_dlg.h" />
     <ClInclude Include="image\batch_image.h" />
     <ClInclude Include="image\image_data.h" />
     <ClInclude Include="image\image_view.h" />

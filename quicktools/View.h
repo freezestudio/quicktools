@@ -25,6 +25,14 @@ inline freeze::ThresholdParam g_ThresholdParam{
 	0,
 };
 
+inline freeze::LaplacianOfGaussianParam g_LaplacianOfGaussianParam{
+	CV_8U,
+	3,
+	1.0,
+	0.0,
+	cv::BORDER_DEFAULT,
+};
+
 class CView :
 	public WTL::CScrollWindowImpl<CView>
 {
@@ -54,6 +62,7 @@ public:
 		//MSG_WM_ERASEBKGND(OnEraseBkgnd)
 		MESSAGE_HANDLER_EX(WM_CANNY, OnCanny)
 		MESSAGE_HANDLER_EX(WM_GAUSSIAN, OnGaussian)
+		MESSAGE_HANDLER_EX(WM_LAPLACIAN_OF_GAUSSIAN, OnLaplacianOfGaussian)
 		MSG_WM_DROPFILES(OnDropFiles)
 		CHAIN_MSG_MAP(WTL::CScrollWindowImpl<CView>)
 	END_MSG_MAP()
@@ -110,6 +119,30 @@ public:
 				g_GaussianParam.sx,
 				g_GaussianParam.sy,
 				g_GaussianParam.type
+			);
+
+			if (m_EnableMinus)
+			{
+				m_Bitmap.minus_image();
+				if (m_Bitmap.is_use_threshold())
+				{
+					m_Bitmap.threshold(
+						g_ThresholdParam.threshold,
+						g_ThresholdParam.max_value,
+						g_ThresholdParam.type
+					);
+				}
+			}
+		}
+
+		if (m_Bitmap.is_auto_use_laplacian_of_gaussian())
+		{
+			m_Bitmap.laplacian_of_gaussian(
+				g_LaplacianOfGaussianParam.ksize,
+				g_LaplacianOfGaussianParam.depth,
+				g_LaplacianOfGaussianParam.scale,
+				g_LaplacianOfGaussianParam.delta,
+				g_LaplacianOfGaussianParam.type
 			);
 
 			if (m_EnableMinus)
@@ -185,13 +218,14 @@ public:
 
 	int OnCreate(LPCREATESTRUCT lpCreateStruct)
 	{
-
 		// 启用拖放支持
 		::DragAcceptFiles(this->m_hWnd, TRUE);
-		// 启用自动应用算子
-		m_Bitmap.set_auto_use_operator();
-		// 启用自动应用高斯模糊
-		m_Bitmap.set_auto_use_gaussian();
+		//// 启用自动应用算子
+		//m_Bitmap.set_auto_use_operator();
+		//// 启用自动应用高斯模糊
+		//m_Bitmap.set_auto_use_gaussian();
+		// 启用自动应用LOG
+		m_Bitmap.set_auto_use_laplacian_of_gaussian();
 
 		SetMsgHandled(FALSE);
 		return 0;
@@ -222,6 +256,13 @@ public:
 	LRESULT OnGaussian(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		AdjustGaussianParam((UINT)HIWORD(wParam), (UINT)LOWORD(wParam));
+		return 0;
+	}
+
+	// Gaussian算子参数
+	LRESULT OnLaplacianOfGaussian(UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		AdjustLaplacianOfGaussianParam((UINT)HIWORD(wParam), (UINT)LOWORD(wParam));
 		return 0;
 	}
 
@@ -356,6 +397,65 @@ public:
 					g_GaussianParam.sx,
 					g_GaussianParam.sy,
 					g_GaussianParam.type
+				);
+
+				if (m_EnableMinus)
+				{
+					m_Bitmap.minus_image();
+					if (m_Bitmap.is_use_threshold())
+					{
+						m_Bitmap.threshold(
+							g_ThresholdParam.threshold,
+							g_ThresholdParam.max_value,
+							g_ThresholdParam.type
+						);
+					}
+				}
+			}
+
+			ResetBitmap();
+		}
+	}
+
+	void AdjustLaplacianOfGaussianParam(UINT value, UINT nID)
+	{
+		int size = 3;
+		int type = 4;
+
+		unsigned char threshold = 0;
+
+		switch (nID)
+		{
+		default:
+			break;
+		case IDC_EDIT_LOG_KERNEL: // size
+			g_LaplacianOfGaussianParam.ksize = value;
+			break;
+		//case IDC_COMBO_BORDER_TYPE:
+		//	g_LaplacianOfGaussianParam.type = freeze::convert_type(value);
+		//	break;
+		case IDC_CHECK_LOG_MINUS: // 启用|禁用减影
+			EnableMinus(value ? true : false);
+			break;
+		case IDC_EDIT_THRESHOLD_LOG: // 减影阈值
+			g_ThresholdParam.threshold = static_cast<unsigned char>(value);
+			break;
+		case ID_RESET_LOG: // 重置LoG参数
+			g_LaplacianOfGaussianParam.ksize = size;
+			g_LaplacianOfGaussianParam.type = type;
+			break;
+		}
+
+		if (m_Bitmap)
+		{
+			if (!m_Bitmap.show_raw_only())
+			{
+				m_Bitmap.laplacian_of_gaussian(
+					g_LaplacianOfGaussianParam.ksize,
+					g_LaplacianOfGaussianParam.depth,
+					g_LaplacianOfGaussianParam.scale,
+					g_LaplacianOfGaussianParam.delta,
+					g_LaplacianOfGaussianParam.type
 				);
 
 				if (m_EnableMinus)
