@@ -10,6 +10,7 @@
 #define IDD_SOBEL                       206
 #define IDD_GAUSSIAN                    208
 #define IDB_BITMAP_TOOLS                211
+#define IDD_DIALOG_LOG                  212
 #define ID_RESET_BTN                    999
 #define IDC_THRESHOLD_SLIDER_1          1000
 #define IDC_THRESHOLD_EDIT_1            1001
@@ -32,8 +33,11 @@
 #define IDC_SLIDER_KERNEL_SIZE          1016
 #define IDC_CHECK_MINUS                 1017
 #define IDC_EDIT_THRESHOLD_MID          1018
-#define IDC_SLIDER1                     1019
 #define IDC_SLIDER_THRESHOLD_MID        1019
+#define IDC_SLIDER_LOG_KERNEL           1020
+#define IDC_EDIT1                       1021
+#define IDC_EDIT_LOG_KERNEL             1021
+#define ID_RESET_LOG                    1022
 #define ID_WINDOW_CLOSE                 32772
 #define ID_WINDOW_CLOSE_ALL             32773
 #define ID_CLV_32776                    32776
@@ -48,14 +52,15 @@
 #define ID_OPERATOR_SOBEL               32785
 #define ID_VIEW_LISTVIEWBAR             32786
 #define ID_OPERATOR_GAUSSIAN            32787
+#define ID_OPERATOR_LAPLACIANOFGAUSSIAN 32788
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        212
-#define _APS_NEXT_COMMAND_VALUE         32788
-#define _APS_NEXT_CONTROL_VALUE         1020
+#define _APS_NEXT_RESOURCE_VALUE        214
+#define _APS_NEXT_COMMAND_VALUE         32789
+#define _APS_NEXT_CONTROL_VALUE         1023
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

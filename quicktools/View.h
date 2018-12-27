@@ -89,7 +89,7 @@ public:
 		if (!detectfile.empty())
 		{
 			m_Bitmap.defect_file(detectfile);
-			m_Bitmap.create_defect_bitmap(GetDC());
+			//m_Bitmap.create_defect_bitmap(GetDC());
 		}
 
 		if (m_Bitmap.is_auto_use_operator())
@@ -138,7 +138,7 @@ public:
 	void SetRefBitmap(std::wstring const& ref_file)
 	{
 		m_Bitmap.reference_file(ref_file);
-		m_Bitmap.create_ref_opera_bitmap(GetDC());
+		//m_Bitmap.create_ref_opera_bitmap(GetDC());
 	}
 
 	// 重置算子图像
@@ -189,7 +189,7 @@ public:
 		// 启用拖放支持
 		::DragAcceptFiles(this->m_hWnd, TRUE);
 		// 启用自动应用算子
-		//m_Bitmap.set_auto_use_operator();
+		m_Bitmap.set_auto_use_operator();
 		// 启用自动应用高斯模糊
 		m_Bitmap.set_auto_use_gaussian();
 
@@ -329,21 +329,21 @@ public:
 			g_GaussianParam.sx = g_GaussianParam.sy = sx;
 			g_GaussianParam.type = type;
 			break;
-		case IDC_CHECK_RESET_RAW://原始图像
-			if (m_Bitmap)
-			{
-				m_Bitmap.exclude_other_image(value);
-			}
-			break;
-		case IDC_CHECK_NO_DEFECT://缺陷图像图像
-			if (m_Bitmap)
-			{
-				m_Bitmap.exclude_defect_image(!value);
-			}
-			break;
-		case IDC_CHECK_REF_IMAGE://使用参考图像(运算)
-			ShowRefImage(value);
-			break;
+		//case IDC_CHECK_RESET_RAW://原始图像
+		//	if (m_Bitmap)
+		//	{
+		//		m_Bitmap.exclude_other_image(value);
+		//	}
+		//	break;
+		//case IDC_CHECK_NO_DEFECT://缺陷图像图像
+		//	if (m_Bitmap)
+		//	{
+		//		m_Bitmap.exclude_defect_image(!value);
+		//	}
+		//	break;
+		//case IDC_CHECK_REF_IMAGE://使用参考图像(运算)
+		//	ShowRefImage(value);
+		//	break;
 		}
 
 		if (m_Bitmap)

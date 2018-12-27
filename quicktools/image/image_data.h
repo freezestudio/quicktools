@@ -287,6 +287,7 @@ namespace freeze {
 		void create_all_image(HDC dc)
 		{
 			create_raw_bitmap(dc);
+
 			if (exclude_other)return;
 
 			if (!exclude_defect)
@@ -294,7 +295,10 @@ namespace freeze {
 				create_defect_bitmap(dc);
 			}
 
-			create_opera_bitmap(dc);
+			if (use_operator)
+			{
+				create_opera_bitmap(dc);
+			}
 
 			if (use_ref_image_data)
 			{
@@ -334,6 +338,7 @@ namespace freeze {
 		void create_defect_bitmap(HDC dc)
 		{
 			reset_defect_image();
+			if (image_data_defect.empty())return;
 
 			unsigned char buffer[sizeof(BITMAPINFO) + 0xFF * sizeof(RGBQUAD)];
 			auto bitmap_info = reinterpret_cast<BITMAPINFO*>(buffer);
@@ -745,7 +750,7 @@ namespace freeze {
 			exclude_other = exclude;
 		}
 
-		// 是否排除缺陷图像的显示
+		// 是否排除缺陷图像(训练图像)的显示
 		void exclude_defect_image(bool exclude = true)
 		{
 			exclude_defect = exclude;
@@ -839,7 +844,7 @@ namespace freeze {
 				return true;
 			}
 
-			// 绘制缺陷图像
+			// 绘制缺陷图像(训练图像)
 			if (!exclude_defect && !defect_image.IsNull())
 			{
 				WTL::CDC defect_dc;
@@ -941,7 +946,7 @@ namespace freeze {
 				return true;
 			}
 
-			// 绘制缺陷图像
+			// 绘制缺陷图像(训练图像)
 			if (!exclude_defect && !defect_image.IsNull())
 			{
 				WTL::CDC defect_dc;
@@ -1003,7 +1008,7 @@ namespace freeze {
 
 		void from_file_internal_defect(std::string const& image_file, image_type flag)
 		{
-			// 缺陷数据
+			// 缺陷数据(训练)
 			image_data_defect = load_image(image_file, static_cast<int>(flag));
 		}
 
@@ -1099,7 +1104,7 @@ namespace freeze {
 		ImageData l_o_g_image;// LoG算子图像
 
 		bool exclude_other = false; // 排除其它图像的显示，仅显示原始图像
-		bool exclude_defect = false; // 单独排除缺陷图像的显示
+		bool exclude_defect = true; // 单独排除缺陷图像(训练图像)的显示
 
 		bool use_operator = false; // 自动加载算子，控制图像数据切换时是否自动运算相应的算子。
 		bool use_gaussian = false; // 自动加载高斯模糊，控制图像数据切换时是否自动运算相应的高斯模糊。
