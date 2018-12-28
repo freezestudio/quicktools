@@ -421,9 +421,21 @@ public:
 		}
 
 		// 检查运算对话框的显示状态，并设置相应自动启用标志
+
 		pView->AutoUseSome(AUTO_USE_OPERA, m_CannyDlg.IsWindowVisible() ? true : false);
 		pView->AutoUseSome(AUTO_USE_GAUSSIAN, m_GaussianDlg.IsWindowVisible() ? true : false);
 		pView->AutoUseSome(AUTO_USE_LOG, m_LaplacianOfGaussianDlg.IsWindowVisible() ? true : false);
+
+		bool erode = m_ErosionDilationDlg.CanUseErosion();
+		if (!erode)
+		{
+			erode = m_ErosionDilationDlg.CanUseDilation();
+		}
+		pView->AutoUseSome(
+			AUTO_USE_EROSION_DILATION, 
+			m_ErosionDilationDlg.IsWindowVisible() ? true : false,
+			erode
+		);
 
 		if (m_RefImage.empty())
 		{
@@ -559,10 +571,14 @@ public:
 	void OnErosionDilation(UINT /*uNotifyCode*/, int /*nID*/, CWindow /*wndCtl*/)
 	{
 		m_ErosionDilationDlg.ShowWindow(SW_SHOW);
-
 		if (m_pActiveView)
 		{
-			m_pActiveView->AutoUseSome(AUTO_USE_EROSION_DILATION, true);
+			bool erode = m_ErosionDilationDlg.CanUseErosion();
+			if (!erode)
+			{
+				erode = m_ErosionDilationDlg.CanUseDilation();
+			}
+			m_pActiveView->AutoUseSome(AUTO_USE_EROSION_DILATION, true, erode);
 			m_pActiveView->PostMessage(WM_EROSION_DILATION, 0, 0);
 		}
 	}

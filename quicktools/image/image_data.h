@@ -78,6 +78,23 @@ namespace freeze {
 			cv::InputOutputArray outArray;
 		};
 
+		struct ErosianDilationParam
+		{
+			int ksize;
+			//int anchor;
+			int shape;
+			int type;
+			int iter;
+		};
+
+		struct ErosianDilationnWithArrayParam : ErosianDilationParam
+		{
+			HANDLE hEvent;
+			cv::InputArray inArray;
+			cv::InputOutputArray outArray;
+			bool erode;
+		};
+
 		inline int convert_type(int n)
 		{
 			switch (n)
@@ -210,6 +227,40 @@ namespace freeze {
 				}
 
 				SetEvent(pLoGParam->hEvent);
+				return TRUE;
+			}
+			return FALSE;
+		}
+
+		inline static DWORD CALLBACK AsyncErosionDilation(LPVOID pParam)
+		{
+			ErosianDilationnWithArrayParam* pEDParam = reinterpret_cast<ErosianDilationnWithArrayParam*>(pParam);
+			auto result = WaitForSingleObject(pEDParam->hEvent, INFINITE);
+			if (WAIT_OBJECT_0 == result)
+			{
+				try
+				{
+					cv::Size size = { pEDParam->ksize, pEDParam->ksize, };
+					cv::Point anchor = { -1,-1 };
+					auto element = cv::getStructuringElement(pEDParam->shape, size, anchor);
+
+					if (pEDParam->erode)
+					{
+						cv::erode(pEDParam->inArray, pEDParam->outArray, element, anchor, pEDParam->iter, pEDParam->type);
+					}
+					else
+					{
+						cv::dilate(pEDParam->inArray, pEDParam->outArray, element, anchor, pEDParam->iter, pEDParam->type);
+					}
+				}
+				catch (const std::exception& e)
+				{
+					auto reason = e.what();
+					SetEvent(pEDParam->hEvent);
+					return FALSE;
+				}
+
+				SetEvent(pEDParam->hEvent);
 				return TRUE;
 			}
 			return FALSE;
@@ -681,9 +732,32 @@ namespace freeze {
 		}
 
 		// 侵蚀与膨胀
-		void erode_dilate()
+		void erode_dilate(int ksize, int shape = cv::MORPH_RECT, int type = cv::BORDER_CONSTANT, int iter = 1)
 		{
+			set_event();
 
+			// 每次运行，算子数据都需要重置为原始数据的副本
+			reset_data_opera();
+
+			cv::Mat out_mat;
+			ErosianDilationnWithArrayParam param = {
+				ksize,
+				shape,
+				type,
+				iter,
+				opear_event,
+				image_data_opera,
+				out_mat,
+				use_erosion,
+			};
+
+			auto hThread = CreateThread(nullptr, 0, AsyncErosionDilation, &param, 0, nullptr);
+			auto result = WaitForSingleObject(hThread, INFINITE);
+			if (WAIT_OBJECT_0 == result)
+			{
+				set_data_opera(out_mat);
+			}
+			CloseHandle(hThread);
 		}
 
 		// 属性
@@ -731,37 +805,15 @@ namespace freeze {
 			image_data_opera = mat.clone();
 		}
 
-		void set_data_ref_opera(cv::Mat const& mat)
-		{
-			image_data_ref_opera = mat/*.clone()*/;
-		}
-
-		void set_data_threshold(cv::Mat const& mat)
-		{
-			image_data_threshold = mat/*.clone()*/;
-		}
-
-		//void set_data_log(cv::Mat const& mat)
-		//{
-		//	image_data_log = mat/*.clone()*/;
-		//}
-
-		// 重置数据(二值化)--从image_data_opera数据中
-		void reset_data_threshold()
-		{
-			image_data_threshold = image_data_opera.clone();
-		}
-
-		//// 重置数据LoG算子--从原始数据中
-		//void reset_data_log()
-		//{
-		//	image_data_log = image_data_raw.clone();
-		//}
-
 		// 重置数据--从原始数据中
 		void reset_data_opera()
 		{
 			image_data_opera = image_data_raw.clone();
+		}
+
+		void set_data_ref_opera(cv::Mat const& mat)
+		{
+			image_data_ref_opera = mat/*.clone()*/;
 		}
 
 		// 重置数据--从参考数据中
@@ -769,6 +821,39 @@ namespace freeze {
 		{
 			image_data_ref_opera = image_data_ref.clone();
 		}
+
+		void set_data_threshold(cv::Mat const& mat)
+		{
+			image_data_threshold = mat/*.clone()*/;
+		}
+
+		// 重置数据(二值化)--从image_data_opera数据中
+		void reset_data_threshold()
+		{
+			image_data_threshold = image_data_opera.clone();
+		}
+
+		void set_image_data_erode_dilate(cv::Mat const& mat)
+		{
+			image_data_erode_dilate = mat/*.clone()*/;
+		}
+
+		//重置数据(侵蚀膨胀)--从image_data_opera数据中
+		void reset_image_data_erode_dilate()
+		{
+			image_data_erode_dilate = image_data_opera.clone();
+		}
+
+		//void set_data_log(cv::Mat const& mat)
+		//{
+		//	image_data_log = mat/*.clone()*/;
+		//}
+
+		//// 重置数据LoG算子--从原始数据中
+		//void reset_data_log()
+		//{
+		//	image_data_log = image_data_raw.clone();
+		//}
 
 		// 原始图像的底层数据(只读)
 		unsigned char* raw_data() const
@@ -1035,6 +1120,11 @@ namespace freeze {
 				return draw_log(dc, offset_x, offset_y);
 			}
 
+			if (use_erosion || use_dilation)
+			{
+				return draw_erode_dilate(dc, offset_x, offset_y);
+			}
+
 			return draw_raw(dc, offset_x, offset_y);
 		}
 
@@ -1275,6 +1365,28 @@ namespace freeze {
 			return true;
 		}
 
+		bool draw_erode_dilate(HDC dc, int offset_x = 0, int offset_y = 0)
+		{
+			CRect image_rect = { 0,0,width(),height() };
+			CRect out = image_rect;
+			out.OffsetRect(offset_x, offset_y);
+			WTL::CMemoryDC mem_dc{ dc,out };
+
+			// 绘制算子图像
+			if (!opera_image.IsNull())
+			{
+				WTL::CDC opera_dc;
+				opera_dc.CreateCompatibleDC(dc);
+				opera_dc.SaveDC();
+				opera_dc.SelectBitmap(opera_image);
+
+				mem_dc.BitBlt(offset_x, offset_y, width(), height(), opera_dc, 0, 0, SRCCOPY);
+
+				opera_dc.RestoreDC(-1);
+			}
+
+			return true;
+		}
 	private:
 		void from_file_internal(std::string const& image_file, image_type flag)
 		{
@@ -1372,6 +1484,7 @@ namespace freeze {
 		//cv::Mat image_data_minus; //减影图像数据 (raw-gaussian)
 		cv::Mat image_data_threshold; // 二值化图像数据
 		//cv::Mat image_data_log; // LoG算子
+		cv::Mat image_data_erode_dilate; // 迭加到运算数据上的侵蚀膨胀数据
 
 		ImageData raw_image; // 原始图像
 		ImageData defect_image; //缺陷图像

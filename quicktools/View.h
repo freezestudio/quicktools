@@ -25,17 +25,24 @@ inline freeze::GaussianParam g_GaussianParam{
 };
 
 inline freeze::ThresholdParam g_ThresholdParam{
-	128,
-	255,
-	0,
+	128, // threshold
+	255, // max_value
+	cv::BORDER_DEFAULT,
 };
 
 inline freeze::LaplacianOfGaussianParam g_LaplacianOfGaussianParam{
-	CV_8U,
-	3,
-	1.0,
-	0.0,
+	CV_8U, // depth
+	3,     // ksize
+	1.0,   // scale
+	0.0,   // delta
 	cv::BORDER_DEFAULT,
+};
+
+inline freeze::ErosianDilationParam g_ErosianDilationParam{
+	3, // ksize
+	cv::MORPH_RECT,
+	cv::BORDER_CONSTANT,
+	1, // iterations
 };
 
 class CView :
@@ -83,7 +90,7 @@ public:
 
 	// 当对应的对话框显示时，启用运算
 
-	void AutoUseSome(int op, bool use)
+	void AutoUseSome(int op, bool use, bool erode = true)
 	{
 		switch (op)
 		{
@@ -97,6 +104,19 @@ public:
 			break;
 		case AUTO_USE_LOG:// 启用自动应用LOG
 			m_Bitmap.set_auto_use_laplacian_of_gaussian(use);
+			break;
+		case AUTO_USE_EROSION_DILATION:// 启用自动应用侵蚀或膨胀
+			if (use)
+			{
+				m_Bitmap.set_auto_use_erosion(erode);
+				m_Bitmap.set_auto_use_dilation(!erode);
+			}
+			else
+			{
+				m_Bitmap.set_auto_use_erosion(use);
+				m_Bitmap.set_auto_use_dilation(use);
+			}
+			
 			break;
 		}
 	}
@@ -567,27 +587,29 @@ public:
 
 	void AdjustErosionDilationParam(UINT value, UINT nID)
 	{
-		int size = 3;
-		int type = 4;
-
-		unsigned char threshold = 0;
-
 		switch (nID)
 		{
 		default:
 			break;
 		case IDC_RADIO_EROSION: // 侵蚀
+			m_Bitmap.set_auto_use_erosion(value);
+			m_Bitmap.set_auto_use_dilation(!value);
 			break;
 		case IDC_RADIO_DILATION: // 膨胀
+			m_Bitmap.set_auto_use_erosion(!value);
+			m_Bitmap.set_auto_use_dilation(value);
 			break;
 		case IDC_EDIT_ED_KERNEL_SIZE: // 核大小
+			g_ErosianDilationParam.ksize = value;
 			break;
 		case IDC_COMBO_ED_SHAPE: // 形状
+			g_ErosianDilationParam.shape = value;
 			break;
 		case IDC_COMBO_LOG_BORDER_TYPE:
-			freeze::convert_type(value);
+			g_ErosianDilationParam.type = freeze::convert_type(value);
 			break;
 		case IDC_EDIT_ITER_COUNT: // 迭代次数
+			g_ErosianDilationParam.iter = value;
 			break;
 		case ID_RESET_ED: // 重置
 			break;
@@ -598,7 +620,10 @@ public:
 			if (!m_Bitmap.show_raw_only())
 			{
 				m_Bitmap.erode_dilate(
-					
+					g_ErosianDilationParam.ksize,
+					g_ErosianDilationParam.shape,
+					g_ErosianDilationParam.type,
+					g_ErosianDilationParam.iter
 				);
 			}
 

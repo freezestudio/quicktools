@@ -239,7 +239,7 @@ namespace freeze {
 			auto checked = m_RadioErosion.GetCheck();
 			if (m_RecvMsgWnd)
 			{
-				auto w = MAKEWPARAM(IDC_EDIT_ITER_COUNT, checked);
+				auto w = MAKEWPARAM(IDC_RADIO_EROSION, checked);
 				::PostMessage(m_RecvMsgWnd, WM_EROSION_DILATION, w, 0);
 			}
 		}
@@ -250,7 +250,7 @@ namespace freeze {
 			auto checked = m_RadioDilation.GetCheck();
 			if (m_RecvMsgWnd)
 			{
-				auto w = MAKEWPARAM(IDC_EDIT_ITER_COUNT, checked);
+				auto w = MAKEWPARAM(IDC_RADIO_DILATION, checked);
 				::PostMessage(m_RecvMsgWnd, WM_EROSION_DILATION, w, 0);
 			}
 		}
