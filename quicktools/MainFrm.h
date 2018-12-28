@@ -374,8 +374,19 @@ public:
 		bool show_ref_image = m_CannyDlg.IsRefImageShow();
 		pView->ShowRefImage(show_ref_image);
 
-		bool enable_minus = m_GaussianDlg.CanUseMinus();
-		pView->EnableMinus(enable_minus);
+		// 高斯对话框处于显示状态时，是否启用高斯减影图像
+		if (m_GaussianDlg.IsWindowVisible())
+		{
+			bool enable_minus = m_GaussianDlg.CanUseMinus();
+			pView->EnableMinus(enable_minus);
+		}
+		
+		// LoG对话框处于显示状态时，是否启用二值化
+		if (m_LaplacianOfGaussianDlg.IsWindowVisible())
+		{
+			bool enable_threshold = m_LaplacianOfGaussianDlg.CanUseLoG();
+			pView->EnableMinus(enable_threshold);
+		}
 
 		// 检查运算对话框的显示状态，并设置相应自动启用标志
 		pView->AutoUseSome(AUTO_USE_OPERA, m_CannyDlg.IsWindowVisible() ? true : false);

@@ -114,6 +114,11 @@ public:
 		m_Bitmap.set_use_threshold(enable);
 	}
 
+	//bool IsEnableMinusWhenChangeImage() const
+	//{
+	//	return m_EnableMinus;
+	//}
+
 	void SetBitmap2(std::wstring const& file, std::wstring const& detectfile = L"", bool auto_scroll = true)
 	{
 		m_Bitmap.raw_file(file);
@@ -273,7 +278,7 @@ public:
 		if (m_Bitmap)
 		{
 			auto left = (rc.Width() - m_Bitmap.width()) / 2;
-			m_Bitmap.draw/*_ex*/(dc, left);
+			m_Bitmap.draw_ex(dc, left);
 			//m_Bitmap.draw_opera_only(dc, left);
 		}
 	}
@@ -488,7 +493,7 @@ public:
 			g_GaussianParam.type = freeze::convert_type(value);
 			g_LaplacianOfGaussianParam.type = freeze::convert_type(value);
 			break;
-		case IDC_CHECK_LOG_MINUS: // 启用|禁用减影
+		case IDC_CHECK_LOG_MINUS: // 启用|禁用二值化
 			EnableMinus(value ? true : false);
 			break;
 		case IDC_EDIT_THRESHOLD_LOG: // 减影阈值
@@ -518,6 +523,7 @@ public:
 					g_LaplacianOfGaussianParam.delta
 				);
 
+				// TODO: 这里改为了启用/停止二值化
 				if (m_EnableMinus)
 				{
 					//m_Bitmap.minus_image();
