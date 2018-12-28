@@ -75,7 +75,7 @@ namespace freeze {
 		{
 			HANDLE hEvent;
 			cv::InputArray inArray;
-			cv::/*Input*/OutputArray outArray;
+			cv::InputOutputArray outArray;
 		};
 
 		inline int convert_type(int n)
@@ -194,13 +194,13 @@ namespace freeze {
 			{
 				try
 				{
-					cv::Mat out_mat;
-					cv::Size size = { pLoGParam->ksize,pLoGParam->ksize, };
-					cv::GaussianBlur(pLoGParam->inArray, out_mat,
-						size, 0, 0, pLoGParam->type);
-					cv::Laplacian(out_mat, out_mat, CV_8U, pLoGParam->ksize,
+					cv::Laplacian(pLoGParam->inArray, pLoGParam->outArray, CV_8U, pLoGParam->ksize,
 						pLoGParam->scale, pLoGParam->delta, pLoGParam->type);
-					cv::convertScaleAbs(out_mat, pLoGParam->outArray);
+
+					//cv::Mat blur_mat;
+					//cv::Laplacian(pLoGParam->inArray, blur_mat, CV_8U, pLoGParam->ksize,
+					//	pLoGParam->scale, pLoGParam->delta, pLoGParam->type);
+					//cv::convertScaleAbs(blur_mat, pLoGParam->outArray);
 				}
 				catch (const std::exception& e)
 				{
@@ -369,19 +369,40 @@ namespace freeze {
 		// 创建算子位图 直接替换或赋值底层数据
 		void create_opera_bitmap(HDC dc)
 		{
-			if (opera_image.IsNull())
-			{
-				opera_image.CreateCompatibleBitmap(dc, width(), height());
-			}
+			//if (opera_image.IsNull())
+			//{
+			//	opera_image.CreateCompatibleBitmap(dc, width(), height());
+			//}
+
+			//unsigned char buffer[sizeof(BITMAPINFO) + 0xFF * sizeof(RGBQUAD)];
+			//auto bitmap_info = reinterpret_cast<BITMAPINFO*>(buffer);
+			//freeze::fill_bitmap_info(bitmap_info, width(), height(), bpp(), image_any<ImageData>::planes);
+
+			//auto ret = opera_image.SetDIBits(
+			//	dc,
+			//	0,
+			//	height(),
+			//	image_data_opera.data,
+			//	bitmap_info,
+			//	DIB_RGB_COLORS
+			//);
+			//if (ret == 0)
+			//{
+			//	auto err = ::GetLastError();
+			//	ERROR_INVALID_PARAMETER;
+			//}
+
+			reset_opera_image();
+			if (image_data_opera.empty())return;
 
 			unsigned char buffer[sizeof(BITMAPINFO) + 0xFF * sizeof(RGBQUAD)];
 			auto bitmap_info = reinterpret_cast<BITMAPINFO*>(buffer);
 			freeze::fill_bitmap_info(bitmap_info, width(), height(), bpp(), image_any<ImageData>::planes);
 
-			opera_image.SetDIBits(
+			opera_image.CreateDIBitmap(
 				dc,
-				0,
-				height(),
+				&bitmap_info->bmiHeader,
+				CBM_INIT,
 				image_data_opera.data,
 				bitmap_info,
 				DIB_RGB_COLORS
@@ -527,10 +548,11 @@ namespace freeze {
 
 			// 重置事件
 			//SetEvent(opear_event);
-			cv::Mat out_mat = cv::Mat::zeros(
-				image_data_opera.size(),
-				CV_8UC3/*CV_8UC1*/
-			);
+			//cv::Mat out_mat = cv::Mat::zeros(
+			//	image_data_opera.size(),
+			//	CV_8UC3/*CV_8UC1*/
+			//);
+			cv::Mat out_mat;
 			GaussianWithArrayParam param = {
 				x,
 				y,
@@ -604,25 +626,20 @@ namespace freeze {
 		// 常用于数字图像的边缘提取和二值化。
 		void laplacian_of_gaussian(
 			int ksize,
+			int x, int y, double sigma_x, double sigma_y = 0, int border = cv::BORDER_DEFAULT,
 			int depth = CV_8U,
 			double scale = 1.0,
-			double delta = 0.0,
-			int type = cv::BORDER_DEFAULT)
+			double delta = 0.0)
 		{
-			set_event();
+			gaussian_blur(x, y, sigma_x, sigma_y, border);
 
-			reset_data_opera();
-
-			cv::Mat out_mat = cv::Mat::zeros(
-				image_data_opera.size(),
-				CV_8UC3/*CV_8UC1*/
-			);
+			cv::Mat out_mat;
 			LaplacianOfGaussianWithArrayParam param = {
 					depth,
 					static_cast<unsigned char>(ksize),
 					scale,
 					delta,
-					type,
+					/*type*/border,
 					opear_event,
 					image_data_opera,
 					out_mat,
@@ -648,6 +665,18 @@ namespace freeze {
 				set_data_opera(out_mat);
 			}
 			CloseHandle(hRefThread);
+		}
+
+		// LoG算子也就是 Laplacian of Gaussian function（高斯拉普拉斯函数）。
+		// 常用于数字图像的边缘提取和二值化。
+		void laplacian_of_gaussian_ex()
+		{
+			auto log_mat = image_data_raw.clone();
+			cv::Mat blur;
+			cv::GaussianBlur(log_mat, blur, cv::Size{ 3,3 }, 0.0);
+			cv::Mat lap_mat;
+			cv::Laplacian(blur, lap_mat, CV_8U, 3);
+			image_data_opera = lap_mat.clone();
 		}
 
 		// 属性
@@ -839,6 +868,25 @@ namespace freeze {
 			temp_bitmap.CreateCompatibleBitmap(dc, width(), height());
 			temp_dc.SelectBitmap(temp_bitmap);
 
+			if (!exclude_other)
+			{
+				// 如果算子运算结果不为空，则直接绘制运算结果，跳过原始图像。
+				if (!opera_image.IsNull())
+				{
+					WTL::CDC opera_dc;
+					opera_dc.CreateCompatibleDC(dc);
+					opera_dc.SaveDC();
+					opera_dc.SelectBitmap(opera_image);
+
+					mem_dc.BitBlt(offset_x, offset_y, width(), height(), opera_dc, 0, 0, SRCCOPY);
+					opera_dc.RestoreDC(-1);
+					temp_dc.RestoreDC(-1);
+
+					// 直接绘制并退出
+					return true;
+				}
+			}
+
 			// 绘制原始图像
 			if (!raw_image.IsNull())
 			{
@@ -1003,6 +1051,29 @@ namespace freeze {
 				threshold_dc.SelectBitmap(threshold_image);
 				temp_dc.BitBlt(0, 0, width(), height(), threshold_dc, 0, 0, SRCPAINT);
 				threshold_dc.RestoreDC(-1);
+			}
+
+			mem_dc.BitBlt(offset_x, offset_y, width(), height(), temp_dc, 0, 0, SRCCOPY);
+			temp_dc.RestoreDC(-1);
+
+			return true;
+		}
+
+		bool draw_opera_only(HDC dc, int offset_x = 0, int offset_y = 0)
+		{
+			CRect image_rect = { 0,0,width(),height() };
+			CRect out = image_rect;
+			out.OffsetRect(offset_x, offset_y);
+			WTL::CMemoryDC mem_dc{ dc,out };
+
+			WTL::CDC temp_dc;
+			temp_dc.CreateCompatibleDC(dc);
+			temp_dc.SaveDC();
+
+			// 绘制算子图像
+			if (!opera_image.IsNull())
+			{
+				temp_dc.SelectBitmap(opera_image);
 			}
 
 			mem_dc.BitBlt(offset_x, offset_y, width(), height(), temp_dc, 0, 0, SRCCOPY);

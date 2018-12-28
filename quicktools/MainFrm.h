@@ -207,6 +207,16 @@ public:
 	// Canny算子参数
 	LRESULT OnCannyHandler(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
+		auto id = LOWORD(wParam);
+		if ((id == IDOK) || (id == IDCANCEL))
+		{
+			if (m_pActiveView)
+			{
+				m_pActiveView->AutoUseSome(AUTO_USE_LOG, false);
+				return 0;
+			}
+		}
+
 		if (m_pActiveView)
 		{
 			m_pActiveView->PostMessage(WM_CANNY, wParam, lParam);
@@ -222,6 +232,16 @@ public:
 	// Gaussian算子参数
 	LRESULT OnGaussianHandler(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
+		auto id = LOWORD(wParam);
+		if ((id == IDOK) || (id == IDCANCEL))
+		{
+			if (m_pActiveView)
+			{
+				m_pActiveView->AutoUseSome(AUTO_USE_GAUSSIAN, false);
+				return 0;
+			}
+		}
+
 		if (m_pActiveView)
 		{
 			m_pActiveView->PostMessage(WM_GAUSSIAN, wParam, lParam);
@@ -237,6 +257,16 @@ public:
 	// LoG算子参数
 	LRESULT OnLaplacianOfGaussianHandler(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
+		auto id = LOWORD(wParam);
+		if ((id == IDOK) || (id == IDCANCEL))
+		{
+			if (m_pActiveView)
+			{
+				m_pActiveView->AutoUseSome(AUTO_USE_LOG, false);
+				return 0;
+			}
+		}
+
 		if (m_pActiveView)
 		{
 			m_pActiveView->PostMessage(WM_LAPLACIAN_OF_GAUSSIAN, wParam, lParam);
@@ -347,6 +377,11 @@ public:
 		bool enable_minus = m_GaussianDlg.CanUseMinus();
 		pView->EnableMinus(enable_minus);
 
+		// 检查运算对话框的显示状态，并设置相应自动启用标志
+		pView->AutoUseSome(AUTO_USE_OPERA, m_CannyDlg.IsWindowVisible() ? true : false);
+		pView->AutoUseSome(AUTO_USE_GAUSSIAN, m_GaussianDlg.IsWindowVisible() ? true : false);
+		pView->AutoUseSome(AUTO_USE_LOG, m_LaplacianOfGaussianDlg.IsWindowVisible() ? true : false);
+
 		if (m_RefImage.empty())
 		{
 			m_RefImageInited = false;
@@ -436,6 +471,7 @@ public:
 
 		if (m_pActiveView)
 		{
+			m_pActiveView->AutoUseSome(AUTO_USE_OPERA, true);
 			m_pActiveView->PostMessage(WM_CANNY, 0, 0);
 		}
 	}
@@ -459,6 +495,7 @@ public:
 
 		if (m_pActiveView)
 		{
+			m_pActiveView->AutoUseSome(AUTO_USE_GAUSSIAN, true);
 			m_pActiveView->PostMessage(WM_GAUSSIAN, 0, 0);
 		}
 	}
@@ -470,6 +507,7 @@ public:
 
 		if (m_pActiveView)
 		{
+			m_pActiveView->AutoUseSome(AUTO_USE_LOG, true);
 			m_pActiveView->PostMessage(WM_LAPLACIAN_OF_GAUSSIAN, 0, 0);
 		}
 	}

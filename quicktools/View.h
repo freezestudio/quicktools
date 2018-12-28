@@ -4,6 +4,10 @@
 
 #pragma once
 
+#define AUTO_USE_OPERA 0
+#define AUTO_USE_GAUSSIAN 1
+#define AUTO_USE_LOG 2
+
 inline freeze::CannyParam g_CannyParam{
 	V_THRESHOLD_1,
 	V_THRESHOLD_2,
@@ -16,7 +20,7 @@ inline freeze::GaussianParam g_GaussianParam{
 	V_KERNEL_Y,
 	V_SIGMA_X,
 	V_SIGMA_X,
-	V_BORDER_TYPE,
+	cv::BORDER_DEFAULT,
 };
 
 inline freeze::ThresholdParam g_ThresholdParam{
@@ -72,6 +76,25 @@ public:
 	//	LRESULT CommandHandler(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 	//	LRESULT NotifyHandler(int /*idCtrl*/, LPNMHDR /*pnmh*/, BOOL& /*bHandled*/)
 
+	// 当对应的对话框显示时，启用运算
+
+	void AutoUseSome(int op, bool use)
+	{
+		switch (op)
+		{
+		default:
+			break;
+		case AUTO_USE_OPERA:// 启用自动应用算子
+			m_Bitmap.set_auto_use_operator(use);
+			break;
+		case AUTO_USE_GAUSSIAN:// 启用自动应用高斯模糊
+			m_Bitmap.set_auto_use_gaussian(use);
+			break;
+		case AUTO_USE_LOG:// 启用自动应用LOG
+			m_Bitmap.set_auto_use_laplacian_of_gaussian(use);
+			break;
+		}
+	}
 	void SetCannyParam()
 	{
 		//m_CannyParam;
@@ -94,6 +117,8 @@ public:
 	void SetBitmap2(std::wstring const& file, std::wstring const& detectfile = L"", bool auto_scroll = true)
 	{
 		m_Bitmap.raw_file(file);
+		// 强制刷新
+		m_Bitmap.create_raw_bitmap(GetDC());
 
 		if (!detectfile.empty())
 		{
@@ -138,16 +163,23 @@ public:
 		if (m_Bitmap.is_auto_use_laplacian_of_gaussian())
 		{
 			m_Bitmap.laplacian_of_gaussian(
+
 				g_LaplacianOfGaussianParam.ksize,
+
+				g_GaussianParam.x,
+				g_GaussianParam.y,
+				g_GaussianParam.sx,
+				g_GaussianParam.sy,
+				g_GaussianParam.type,
+
 				g_LaplacianOfGaussianParam.depth,
 				g_LaplacianOfGaussianParam.scale,
-				g_LaplacianOfGaussianParam.delta,
-				g_LaplacianOfGaussianParam.type
+				g_LaplacianOfGaussianParam.delta
 			);
 
 			if (m_EnableMinus)
 			{
-				m_Bitmap.minus_image();
+				//m_Bitmap.minus_image();
 				if (m_Bitmap.is_use_threshold())
 				{
 					m_Bitmap.threshold(
@@ -225,7 +257,7 @@ public:
 		//// 启用自动应用高斯模糊
 		//m_Bitmap.set_auto_use_gaussian();
 		// 启用自动应用LOG
-		m_Bitmap.set_auto_use_laplacian_of_gaussian();
+		//m_Bitmap.set_auto_use_laplacian_of_gaussian();
 
 		SetMsgHandled(FALSE);
 		return 0;
@@ -242,6 +274,7 @@ public:
 		{
 			auto left = (rc.Width() - m_Bitmap.width()) / 2;
 			m_Bitmap.draw/*_ex*/(dc, left);
+			//m_Bitmap.draw_opera_only(dc, left);
 		}
 	}
 
@@ -428,12 +461,33 @@ public:
 		{
 		default:
 			break;
-		case IDC_EDIT_LOG_KERNEL: // size
+		case IDC_EDIT_G_KERNEL_X: // 高斯核X
+			g_GaussianParam.x = value;
+			g_GaussianParam.y = value;
+			break;
+		case IDC_EDIT_G_KERNEL_Y: // 高斯核Y
+			g_GaussianParam.y = value;
+			break;
+		case IDC_EDIT_G_SIGMA_X: // 标准方差X
+			g_GaussianParam.sx = value;
+			g_GaussianParam.sy = value;
+			break;
+		case IDC_EDIT_G_SIGMA_Y: // 标准方差Y
+			g_GaussianParam.sy = value;
+			break;
+		case IDC_EDIT_LOG_KERNEL: // Laplace Kernel Size
 			g_LaplacianOfGaussianParam.ksize = value;
 			break;
-		//case IDC_COMBO_BORDER_TYPE:
-		//	g_LaplacianOfGaussianParam.type = freeze::convert_type(value);
-		//	break;
+		case IDC_EDIT_LOG_ALPHA: // 缩放系数
+			g_LaplacianOfGaussianParam.scale = value;
+			break;
+		case IDC_EDIT_LOG_BETA: // 偏差量
+			g_LaplacianOfGaussianParam.delta = value;
+			break;
+		case IDC_COMBO_LOG_BORDER_TYPE:
+			g_GaussianParam.type = freeze::convert_type(value);
+			g_LaplacianOfGaussianParam.type = freeze::convert_type(value);
+			break;
 		case IDC_CHECK_LOG_MINUS: // 启用|禁用减影
 			EnableMinus(value ? true : false);
 			break;
@@ -452,15 +506,21 @@ public:
 			{
 				m_Bitmap.laplacian_of_gaussian(
 					g_LaplacianOfGaussianParam.ksize,
+
+					g_GaussianParam.x,
+					g_GaussianParam.y,
+					g_GaussianParam.sx,
+					g_GaussianParam.sy,
+					g_GaussianParam.type,
+
 					g_LaplacianOfGaussianParam.depth,
 					g_LaplacianOfGaussianParam.scale,
-					g_LaplacianOfGaussianParam.delta,
-					g_LaplacianOfGaussianParam.type
+					g_LaplacianOfGaussianParam.delta
 				);
 
 				if (m_EnableMinus)
 				{
-					m_Bitmap.minus_image();
+					//m_Bitmap.minus_image();
 					if (m_Bitmap.is_use_threshold())
 					{
 						m_Bitmap.threshold(
@@ -474,6 +534,10 @@ public:
 
 			ResetBitmap();
 		}
+
+		//// 测试用
+		//m_Bitmap.laplacian_of_gaussian_ex();
+		//ResetBitmap();
 	}
 
 };

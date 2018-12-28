@@ -260,6 +260,8 @@ namespace freeze {
 		LRESULT OnCloseCmd(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 		{
 			ShowWindow(SW_HIDE);
+			auto w = MAKEWPARAM(wID, SW_HIDE);
+			::PostMessage(m_RecvMsgWnd, WM_GAUSSIAN, w, 0);
 			return 0;
 		}
 
