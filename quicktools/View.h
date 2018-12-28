@@ -7,6 +7,7 @@
 #define AUTO_USE_OPERA 0
 #define AUTO_USE_GAUSSIAN 1
 #define AUTO_USE_LOG 2
+#define AUTO_USE_EROSION_DILATION 3
 
 inline freeze::CannyParam g_CannyParam{
 	V_THRESHOLD_1,
@@ -49,6 +50,9 @@ public:
 	bool m_ShowRefImage = false;
 	// 启动|禁用减影
 	bool m_EnableMinus = false;
+	// 启用|禁用二值化
+	// TODO: 
+	bool m_EnableThreshold = false;
 
 	BOOL PreTranslateMessage(MSG* pMsg)
 	{
@@ -67,6 +71,7 @@ public:
 		MESSAGE_HANDLER_EX(WM_CANNY, OnCanny)
 		MESSAGE_HANDLER_EX(WM_GAUSSIAN, OnGaussian)
 		MESSAGE_HANDLER_EX(WM_LAPLACIAN_OF_GAUSSIAN, OnLaplacianOfGaussian)
+		MESSAGE_HANDLER_EX(WM_EROSION_DILATION, OnErosionDilation)
 		MSG_WM_DROPFILES(OnDropFiles)
 		CHAIN_MSG_MAP(WTL::CScrollWindowImpl<CView>)
 	END_MSG_MAP()
@@ -111,6 +116,13 @@ public:
 	void EnableMinus(bool enable = false)
 	{
 		m_EnableMinus = enable;
+		//m_Bitmap.set_use_minus(enable);
+		m_Bitmap.set_use_threshold(enable);
+	}
+
+	void EnableThreshold(bool enable = false)
+	{
+		m_EnableThreshold = enable;
 		m_Bitmap.set_use_threshold(enable);
 	}
 
@@ -128,7 +140,7 @@ public:
 		if (!detectfile.empty())
 		{
 			m_Bitmap.defect_file(detectfile);
-			//m_Bitmap.create_defect_bitmap(GetDC());
+			m_Bitmap.create_defect_bitmap(GetDC());
 		}
 
 		if (m_Bitmap.is_auto_use_operator())
@@ -297,10 +309,17 @@ public:
 		return 0;
 	}
 
-	// Gaussian算子参数
+	// LoG算子参数
 	LRESULT OnLaplacianOfGaussian(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		AdjustLaplacianOfGaussianParam((UINT)HIWORD(wParam), (UINT)LOWORD(wParam));
+		return 0;
+	}
+
+	// 侵蚀膨胀参数
+	LRESULT OnErosionDilation(UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		AdjustErosionDilationParam((UINT)HIWORD(wParam), (UINT)LOWORD(wParam));
 		return 0;
 	}
 
@@ -546,4 +565,44 @@ public:
 		//ResetBitmap();
 	}
 
+	void AdjustErosionDilationParam(UINT value, UINT nID)
+	{
+		int size = 3;
+		int type = 4;
+
+		unsigned char threshold = 0;
+
+		switch (nID)
+		{
+		default:
+			break;
+		case IDC_RADIO_EROSION: // 侵蚀
+			break;
+		case IDC_RADIO_DILATION: // 膨胀
+			break;
+		case IDC_EDIT_ED_KERNEL_SIZE: // 核大小
+			break;
+		case IDC_COMBO_ED_SHAPE: // 形状
+			break;
+		case IDC_COMBO_LOG_BORDER_TYPE:
+			freeze::convert_type(value);
+			break;
+		case IDC_EDIT_ITER_COUNT: // 迭代次数
+			break;
+		case ID_RESET_ED: // 重置
+			break;
+		}
+
+		if (m_Bitmap)
+		{
+			if (!m_Bitmap.show_raw_only())
+			{
+				m_Bitmap.erode_dilate(
+					
+				);
+			}
+
+			ResetBitmap();
+		}
+	}
 };

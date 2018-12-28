@@ -11,6 +11,8 @@
 #define IDD_GAUSSIAN                    208
 #define IDB_BITMAP_TOOLS                211
 #define IDD_DIALOG_LOG                  212
+#define IDD_DIALOG_                     214
+#define IDD_DIALOG_ED                   214
 #define ID_RESET_BTN                    999
 #define IDC_THRESHOLD_SLIDER_1          1000
 #define IDC_THRESHOLD_EDIT_1            1001
@@ -41,7 +43,6 @@
 #define IDC_EDIT_THRESHOLD_LOG          1024
 #define IDC_SLIDER_THRESHOLD_LOG        1025
 #define IDC_EDIT_LOG_ALPHA              1026
-#define IDC_EDIT3                       1027
 #define IDC_EDIT_LOG_BETA               1027
 #define IDC_SLIDER_G_X                  1028
 #define IDC_EDIT_G_KERNEL_X             1029
@@ -51,6 +52,14 @@
 #define IDC_CHECK_G_SIGMA_Y             1033
 #define IDC_EDIT_G_SIGMA_Y              1034
 #define IDC_COMBO_LOG_BORDER_TYPE       1035
+#define IDC_RADIO_EROSION               1036
+#define IDC_RADIO_DILATION              1037
+#define IDC_SLIDER_ED_KERNEL_SIZE       1038
+#define IDC_EDIT_ED_KERNEL_SIZE         1039
+#define IDC_COMBO_ED_SHAPE              1040
+#define IDC_COMBO_ED_BORDER_TYPE        1041
+#define IDC_EDIT_ITER_COUNT             1042
+#define ID_RESET_ED                     1043
 #define ID_WINDOW_CLOSE                 32772
 #define ID_WINDOW_CLOSE_ALL             32773
 #define ID_CLV_32776                    32776
@@ -66,14 +75,17 @@
 #define ID_VIEW_LISTVIEWBAR             32786
 #define ID_OPERATOR_GAUSSIAN            32787
 #define ID_OPERATOR_LAPLACIANOFGAUSSIAN 32788
+#define ID_MORPHOLOGICAL_EROSION        32789
+#define ID_MORPHOLOGICAL_DILATION       32790
+#define ID_MORPHOLOGICAL_EROSION_DILATION 32791
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        214
-#define _APS_NEXT_COMMAND_VALUE         32789
-#define _APS_NEXT_CONTROL_VALUE         1036
+#define _APS_NEXT_RESOURCE_VALUE        216
+#define _APS_NEXT_COMMAND_VALUE         32792
+#define _APS_NEXT_CONTROL_VALUE         1044
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

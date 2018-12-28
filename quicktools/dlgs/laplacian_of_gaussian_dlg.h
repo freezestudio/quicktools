@@ -47,7 +47,7 @@ namespace freeze {
 			COMMAND_ID_HANDLER_EX(IDC_CHECK_LOG_MINUS, OnMinusLoGCheck)
 			MSG_WM_COMMAND(OnCommand)
 			MSG_WM_HSCROLL(OnHScroll)
-			END_MSG_MAP()
+		END_MSG_MAP()
 
 		// Handler prototypes (uncomment arguments if needed):
 		//	LRESULT MessageHandler(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)

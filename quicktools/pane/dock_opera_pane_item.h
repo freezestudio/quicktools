@@ -12,7 +12,7 @@ namespace freeze {
 
 		BEGIN_MSG_MAP_EX(CDockOperaItem)
 			MSG_WM_CREATE(OnCreate)
-			END_MSG_MAP()
+		END_MSG_MAP()
 
 		int OnCreate(LPCREATESTRUCT lpCreateStruct)
 		{

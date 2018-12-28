@@ -95,6 +95,9 @@
     <ClInclude Include="dlgs\laplacian_of_gaussian_dlg.h">
       <Filter>Header Files\dlgs</Filter>
     </ClInclude>
+    <ClInclude Include="dlgs\erosion_dilation_dlg.h">
+      <Filter>Header Files\dlgs</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="quicktools.rc">

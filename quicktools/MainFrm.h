@@ -43,6 +43,7 @@ public:
 	freeze::CCannyDlg m_CannyDlg;
 	freeze::CGaussianDlg m_GaussianDlg;
 	freeze::CLaplacianOfGaussianDlg m_LaplacianOfGaussianDlg;
+	freeze::CErosionDilationDlg m_ErosionDilationDlg;
 
 	virtual BOOL PreTranslateMessage(MSG* pMsg)
 	{
@@ -81,6 +82,7 @@ public:
 		COMMAND_ID_HANDLER_EX(ID_OPERATOR_SOBEL, OnSobel)
 		COMMAND_ID_HANDLER_EX(ID_OPERATOR_GAUSSIAN, OnGaussion)
 		COMMAND_ID_HANDLER_EX(ID_OPERATOR_LAPLACIANOFGAUSSIAN, OnLaplacianOfGaussion)
+		COMMAND_ID_HANDLER_EX(ID_MORPHOLOGICAL_EROSION_DILATION, OnErosionDilation)
 		COMMAND_RANGE_HANDLER_EX(ID_WINDOW_TABFIRST, ID_WINDOW_TABLAST, OnWindowActivate)
 		MESSAGE_HANDLER_EX(WM_OPEN_IMAGE, OnOpenImage)
 		MESSAGE_HANDLER_EX(WM_OPEN_REF_IMAGE, OnOpenRefImage)
@@ -88,6 +90,7 @@ public:
 		MESSAGE_HANDLER_EX(WM_CANNY, OnCannyHandler)
 		MESSAGE_HANDLER_EX(WM_GAUSSIAN, OnGaussianHandler)
 		MESSAGE_HANDLER_EX(WM_LAPLACIAN_OF_GAUSSIAN, OnLaplacianOfGaussianHandler)
+		MESSAGE_HANDLER_EX(WM_EROSION_DILATION, OnErosionDilationHandler)
 		CHAIN_MSG_MAP(WTL::CUpdateUI<CMainFrame>)
 		CHAIN_MSG_MAP(WTL::CFrameWindowImpl<CMainFrame>)
 	END_MSG_MAP()
@@ -186,6 +189,10 @@ public:
 		m_LaplacianOfGaussianDlg.Create(this->m_hWnd);
 		m_LaplacianOfGaussianDlg.SetRecvMessageWindow(this->m_hWnd);
 
+		// 侵蚀膨胀对话框
+		m_ErosionDilationDlg.Create(this->m_hWnd);
+		m_ErosionDilationDlg.SetRecvMessageWindow(this->m_hWnd);
+
 		return 0;
 	}
 
@@ -212,7 +219,7 @@ public:
 		{
 			if (m_pActiveView)
 			{
-				m_pActiveView->AutoUseSome(AUTO_USE_LOG, false);
+				m_pActiveView->AutoUseSome(AUTO_USE_OPERA, false);
 				return 0;
 			}
 		}
@@ -270,6 +277,31 @@ public:
 		if (m_pActiveView)
 		{
 			m_pActiveView->PostMessage(WM_LAPLACIAN_OF_GAUSSIAN, wParam, lParam);
+		}
+		else
+		{
+			//WTL::AtlMessageBox(this->m_hWnd, L"没有活动视图", L"警告", MB_OK | MB_ICONWARNING);
+		}
+		SetMsgHandled(FALSE);
+		return 0;
+	}
+
+	// 侵蚀膨胀参数
+	LRESULT OnErosionDilationHandler(UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		auto id = LOWORD(wParam);
+		if ((id == IDOK) || (id == IDCANCEL))
+		{
+			if (m_pActiveView)
+			{
+				m_pActiveView->AutoUseSome(AUTO_USE_EROSION_DILATION, false);
+				return 0;
+			}
+		}
+
+		if (m_pActiveView)
+		{
+			m_pActiveView->PostMessage(WM_EROSION_DILATION, wParam, lParam);
 		}
 		else
 		{
@@ -520,6 +552,18 @@ public:
 		{
 			m_pActiveView->AutoUseSome(AUTO_USE_LOG, true);
 			m_pActiveView->PostMessage(WM_LAPLACIAN_OF_GAUSSIAN, 0, 0);
+		}
+	}
+
+	// Menu -> Morphological -> Erosion|Dilation
+	void OnErosionDilation(UINT /*uNotifyCode*/, int /*nID*/, CWindow /*wndCtl*/)
+	{
+		m_ErosionDilationDlg.ShowWindow(SW_SHOW);
+
+		if (m_pActiveView)
+		{
+			m_pActiveView->AutoUseSome(AUTO_USE_EROSION_DILATION, true);
+			m_pActiveView->PostMessage(WM_EROSION_DILATION, 0, 0);
 		}
 	}
 

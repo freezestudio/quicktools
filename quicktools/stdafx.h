@@ -72,10 +72,14 @@ extern WTL::CAppModule _Module;
 
 #define WM_LAPLACIAN_OF_GAUSSIAN WM_USER + 109
 
+// see erosion_dilation_dlg
+
+#define WM_EROSION_DILATION WM_USER + 110
+
 // see image_data.h
 
 // 完成一次Canny算子的运算时
-#define WM_CANNY_FINISH WM_USER + 110
+#define WM_CANNY_FINISH WM_USER + 111
 
 
 #if defined _M_IX86

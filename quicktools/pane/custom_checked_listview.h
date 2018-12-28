@@ -567,37 +567,48 @@ namespace freeze {
 		{
 			if (!m_CheckListViewCtrl)return 0;
 
-			// 选择列表项时
-			if (ID_CHECKED_LISTVIEW == idCtrl)
+			try
 			{
-				LPNMITEMACTIVATE pnmia = reinterpret_cast<LPNMITEMACTIVATE>(pnmh);
-
-				if ((NM_CLICK == pnmh->code) && (pnmia->iSubItem>0))
+				// 选择列表项时
+				if (ID_CHECKED_LISTVIEW == idCtrl)
 				{
-					OnItemClicked(pnmia->iItem);
-				}
+					LPNMITEMACTIVATE pnmia = reinterpret_cast<LPNMITEMACTIVATE>(pnmh);
 
-				// 弹出菜单
-				if (NM_RCLICK == pnmh->code)
-				{
-					auto menu = LoadMenu(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDR_CLV_CONTEXT_MENU));
-					auto pop = GetSubMenu(menu, 0);
-					auto pt = reinterpret_cast<LPNMITEMACTIVATE>(pnmh)->ptAction;
-					ClientToScreen(&pt);
-					TrackPopupMenuEx(pop,
-						TPM_NOANIMATION,
-						pt.x, pt.y,
-						this->m_hWnd,
-						nullptr);
+					if ((NM_CLICK == pnmh->code) && (pnmia->iSubItem > 0))
+					{
+						OnItemClicked(pnmia->iItem);
+					}
+
+					// 弹出菜单
+					if (NM_RCLICK == pnmh->code)
+					{
+						auto menu = LoadMenu(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDR_CLV_CONTEXT_MENU));
+						auto pop = GetSubMenu(menu, 0);
+						auto pt = reinterpret_cast<LPNMITEMACTIVATE>(pnmh)->ptAction;
+						ClientToScreen(&pt);
+						TrackPopupMenuEx(pop,
+							TPM_NOANIMATION,
+							pt.x, pt.y,
+							this->m_hWnd,
+							nullptr);
+					}
 				}
 			}
-
-			// 当选择列表视图标题栏中的全选框时
-			if (auto header = m_CheckListViewCtrl.GetHeader(); header.GetDlgCtrlID() == idCtrl)
+			catch (const std::exception& e)
 			{
-				HDITEM hdi;
-				try
+				MessageBoxA(nullptr, e.what(), "OnNotify ListView", MB_OK);
+				SetMsgHandled(FALSE);
+				return 0;
+			}
+			
+
+			try
+			{
+				// 当选择列表视图标题栏中的全选框时
+				if (auto header = m_CheckListViewCtrl.GetHeader(); header.GetDlgCtrlID() == idCtrl)
 				{
+					HDITEM hdi;
+
 					// Release版，这里会异常
 					if (header && header.GetItem(0, &hdi))
 					{
@@ -610,11 +621,14 @@ namespace freeze {
 							// 取消全选
 						}
 					}
+
 				}
-				catch (const std::exception& e)
-				{
-					MessageBoxA(nullptr, e.what(), "", MB_OK);
-				}
+			}
+			catch (const std::exception& e)
+			{
+				MessageBoxA(nullptr, e.what(), "OnNotify ListView Header", MB_OK);
+				SetMsgHandled(FALSE);
+				return 0;
 			}
 
 			SetMsgHandled(FALSE);
@@ -630,8 +644,8 @@ namespace freeze {
 
 				auto find = std::find_if(std::begin(m_VecData), std::end(m_VecData),
 					[&item](auto data) {
-						return data.index == (item + 1);
-					});
+					return data.index == (item + 1);
+				});
 
 				if (m_VecData.end() != find)
 				{
@@ -659,13 +673,13 @@ namespace freeze {
 				if (docking_container)
 				{
 					docking_container.SendMessage(
-						WM_OPEN_IMAGE_WITH_DETECT, 
-						OPEN_IMAGE_THIS, 
+						WM_OPEN_IMAGE_WITH_DETECT,
+						OPEN_IMAGE_THIS,
 						reinterpret_cast<LPARAM>(m_CurrentDetectImageFile.c_str())
 					);
 					docking_container.SendMessage(
-						WM_OPEN_IMAGE, 
-						OPEN_IMAGE_THIS, 
+						WM_OPEN_IMAGE,
+						OPEN_IMAGE_THIS,
 						reinterpret_cast<LPARAM>(m_CurrentImageFile.c_str())
 					);
 				}
@@ -724,7 +738,7 @@ namespace freeze {
 			if (ret)
 			{
 				m_DirBar.SendMessage(
-					WM_DIRECTORY_CHANGED, 
+					WM_DIRECTORY_CHANGED,
 					0,
 					reinterpret_cast<LPARAM>(szFile)
 				);

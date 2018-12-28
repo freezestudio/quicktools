@@ -667,6 +667,7 @@ namespace freeze {
 			CloseHandle(hRefThread);
 		}
 
+		// TODO: Test
 		// LoG算子也就是 Laplacian of Gaussian function（高斯拉普拉斯函数）。
 		// 常用于数字图像的边缘提取和二值化。
 		void laplacian_of_gaussian_ex()
@@ -677,6 +678,12 @@ namespace freeze {
 			cv::Mat lap_mat;
 			cv::Laplacian(blur, lap_mat, CV_8U, 3);
 			image_data_opera = lap_mat.clone();
+		}
+
+		// 侵蚀与膨胀
+		void erode_dilate()
+		{
+
 		}
 
 		// 属性
@@ -802,6 +809,39 @@ namespace freeze {
 		bool is_use_threshold() const
 		{
 			return use_threshold;
+		}
+
+		// 使用减影图像
+		void set_use_minus(bool use = true)
+		{
+			use_minus = use;
+		}
+
+		bool is_use_minus() const
+		{
+			return use_minus;
+		}
+
+		// 自动应用侵蚀
+		void set_auto_use_erosion(bool use = true)
+		{
+			use_erosion = use;
+		}
+
+		bool is_auto_use_erosion() const
+		{
+			return use_erosion;
+		}
+
+		// 自动应用膨胀
+		void set_auto_use_dilation(bool use = true)
+		{
+			use_dilation = use;
+		}
+
+		bool is_auto_use_dilation() const
+		{
+			return use_dilation;
 		}
 
 		// 当图像切换时,自动应用算子
@@ -968,12 +1008,63 @@ namespace freeze {
 		}
 
 		//
-		// 分选项绘制
-		// 1. 当仅绘制原始图像时
-		// 2. 当有算子操作时
-		// 3. 当有附加于算子上的二次操作时
-		//
+// 分选项绘制
+// 1. 当仅绘制原始图像时
+// 2. 当有算子操作时
+// 3. 当有附加于算子上的二次操作时
+//
 		bool draw_ex(HDC dc, int offset_x = 0, int offset_y = 0)
+		{
+			if (exclude_other)
+			{
+				return draw_raw(dc, offset_x, offset_y);
+			}
+
+			if (use_operator)
+			{
+				return draw_canny(dc, offset_x, offset_y);
+			}
+
+			if (use_gaussian)
+			{
+				return draw_gaussian(dc, offset_x, offset_y);
+			}
+
+			if (use_laplacian_of_gaussian)
+			{
+				return draw_log(dc, offset_x, offset_y);
+			}
+
+			return draw_raw(dc, offset_x, offset_y);
+		}
+
+		// TODO: 测试用
+		bool draw_opera_only(HDC dc, int offset_x = 0, int offset_y = 0)
+		{
+			CRect image_rect = { 0,0,width(),height() };
+			CRect out = image_rect;
+			out.OffsetRect(offset_x, offset_y);
+			WTL::CMemoryDC mem_dc{ dc,out };
+
+			WTL::CDC temp_dc;
+			temp_dc.CreateCompatibleDC(dc);
+			temp_dc.SaveDC();
+
+			// 绘制算子图像
+			if (!opera_image.IsNull())
+			{
+				temp_dc.SelectBitmap(opera_image);
+			}
+
+			mem_dc.BitBlt(offset_x, offset_y, width(), height(), temp_dc, 0, 0, SRCCOPY);
+			temp_dc.RestoreDC(-1);
+
+			return true;
+		}
+
+		// 绘制
+	private:
+		bool draw_raw(HDC dc, int offset_x = 0, int offset_y = 0)
 		{
 			if (raw_image.IsNull())
 			{
@@ -995,109 +1086,39 @@ namespace freeze {
 			temp_bitmap.CreateCompatibleBitmap(dc, width(), height());
 			temp_dc.SelectBitmap(temp_bitmap);
 
-			if (!exclude_other)
-			{
-				bool has_other = false;
-				// 绘制缺陷图像(训练图像)
-				if (!exclude_defect && !defect_image.IsNull())
-				{
-					WTL::CDC defect_dc;
-					defect_dc.CreateCompatibleDC(temp_dc);
-					defect_dc.SaveDC();
-					defect_dc.SelectBitmap(defect_image);
+			WTL::CDC raw_dc;
+			raw_dc.CreateCompatibleDC(temp_dc);
+			raw_dc.SaveDC();
+			raw_dc.SelectBitmap(raw_image);
+			temp_dc.BitBlt(0, 0, width(), height(), raw_dc, 0, 0, SRCCOPY);
+			raw_dc.RestoreDC(-1);
 
-					//temp_dc.BitBlt(0, 0, width(), height(), defect_dc, 0, 0, SRCPAINT);
-					temp_dc.TransparentBlt(0, 0, width(), height(), defect_dc, 0, 0, width(), height(), RGB(0, 0, 0));
+			mem_dc.BitBlt(offset_x, offset_y, width(), height(), temp_dc, 0, 0, SRCCOPY);
 
-					defect_dc.RestoreDC(-1);
-					has_other = true;
-				}
+			temp_dc.RestoreDC(-1);
 
-				// 绘制参考图像的算子图像
-				if (use_ref_image_data && !ref_opera_image.IsNull())
-				{
-					WTL::CDC ref_opera_dc;
-					ref_opera_dc.CreateCompatibleDC(temp_dc);
-					ref_opera_dc.SaveDC();
-					ref_opera_dc.SelectBitmap(ref_opera_image);
+			return true;
+		}
 
-					//temp_dc.BitBlt(0, 0, width(), height(), ref_opera_dc, 0, 0, SRCPAINT);
-					temp_dc.TransparentBlt(0, 0, width(), height(), ref_opera_dc, 0, 0, width(), height(), RGB(0, 0, 0));
+		bool draw_canny(HDC dc, int offset_x = 0, int offset_y = 0)
+		{
+			// 双缓冲
+			WTL::CDCHandle temp_dc;
+			temp_dc.CreateCompatibleDC(dc);
+			temp_dc.SaveDC();
 
-					ref_opera_dc.RestoreDC(-1);
-					has_other = true;
-				}
+			CRect image_rect = { 0,0,width(),height() };
+			CRect out = image_rect;
+			out.OffsetRect(offset_x, offset_y);
+			WTL::CMemoryDC mem_dc{ dc,out };
 
-				if (!has_other)has_other = use_threshold;
+			WTL::CBitmap temp_bitmap;
+			// 注意创建与原始dc兼容的位图
+			temp_bitmap.CreateCompatibleBitmap(dc, width(), height());
+			temp_dc.SelectBitmap(temp_bitmap);
 
-				if (has_other)
-				{
-					// 绘制算子图像
-					if (!opera_image.IsNull())
-					{
-						WTL::CDC opera_dc;
-						opera_dc.CreateCompatibleDC(temp_dc);
-						opera_dc.SaveDC();
-						opera_dc.SelectBitmap(opera_image);
-
-						//temp_dc.BitBlt(0, 0, width(), height(), opera_dc, 0, 0, SRCPAINT);
-						temp_dc.TransparentBlt(0, 0, width(), height(), opera_dc, 0, 0, width(), height(), RGB(0, 0, 0));
-
-						opera_dc.RestoreDC(-1);
-					}
-					else
-					{
-						WTL::CDC raw_dc;
-						raw_dc.CreateCompatibleDC(temp_dc);
-						raw_dc.SaveDC();
-						raw_dc.SelectBitmap(raw_image);
-						temp_dc.BitBlt(0, 0, width(), height(), raw_dc, 0, 0, SRCCOPY);
-						raw_dc.RestoreDC(-1);
-
-						mem_dc.BitBlt(offset_x, offset_y, width(), height(), temp_dc, 0, 0, SRCCOPY);
-
-						temp_dc.RestoreDC(-1);
-
-						// 直接绘制原始图像并退出
-						return true;
-					}
-				}
-				// 如果算子运算结果不为空，则直接绘制运算结果。
-				else
-				{
-					if (!opera_image.IsNull())
-					{
-						WTL::CDC opera_dc;
-						opera_dc.CreateCompatibleDC(dc);
-						opera_dc.SaveDC();
-						opera_dc.SelectBitmap(opera_image);
-
-						mem_dc.BitBlt(offset_x, offset_y, width(), height(), opera_dc, 0, 0, SRCCOPY);
-						opera_dc.RestoreDC(-1);
-						temp_dc.RestoreDC(-1);
-
-						// 直接绘制并退出
-						return true;
-					}
-					else
-					{
-						WTL::CDC raw_dc;
-						raw_dc.CreateCompatibleDC(temp_dc);
-						raw_dc.SaveDC();
-						raw_dc.SelectBitmap(raw_image);
-						temp_dc.BitBlt(0, 0, width(), height(), raw_dc, 0, 0, SRCCOPY);
-						raw_dc.RestoreDC(-1);
-
-						mem_dc.BitBlt(offset_x, offset_y, width(), height(), temp_dc, 0, 0, SRCCOPY);
-
-						temp_dc.RestoreDC(-1);
-
-						// 直接绘制原始图像并退出
-						return true;
-					}
-				}
-			}
-			else // 显式排除了其它图像时，仅绘制原始图像
+			// 绘制原始图像
+			if (!raw_image.IsNull())
 			{
 				WTL::CDC raw_dc;
 				raw_dc.CreateCompatibleDC(temp_dc);
@@ -1105,12 +1126,86 @@ namespace freeze {
 				raw_dc.SelectBitmap(raw_image);
 				temp_dc.BitBlt(0, 0, width(), height(), raw_dc, 0, 0, SRCCOPY);
 				raw_dc.RestoreDC(-1);
+			}
 
-				mem_dc.BitBlt(offset_x, offset_y, width(), height(), temp_dc, 0, 0, SRCCOPY);
+			// 绘制缺陷图像(训练图像)
+			if (!exclude_defect && !defect_image.IsNull())
+			{
+				WTL::CDC defect_dc;
+				defect_dc.CreateCompatibleDC(temp_dc);
+				defect_dc.SaveDC();
+				defect_dc.SelectBitmap(defect_image);
 
-				temp_dc.RestoreDC(-1);
-				// 直接绘制原始图像并退出
-				return true;
+				//temp_dc.BitBlt(0, 0, width(), height(), defect_dc, 0, 0, SRCPAINT);
+				temp_dc.TransparentBlt(0, 0, width(), height(), defect_dc, 0, 0, width(), height(), RGB(0, 0, 0));
+
+				defect_dc.RestoreDC(-1);
+			}
+
+			// 绘制算子图像
+			if (!opera_image.IsNull())
+			{
+				WTL::CDC opera_dc;
+				opera_dc.CreateCompatibleDC(temp_dc);
+				opera_dc.SaveDC();
+				opera_dc.SelectBitmap(opera_image);
+
+				//temp_dc.BitBlt(0, 0, width(), height(), opera_dc, 0, 0, SRCPAINT);
+				temp_dc.TransparentBlt(0, 0, width(), height(), opera_dc, 0, 0, width(), height(), RGB(0, 0, 0));
+
+				opera_dc.RestoreDC(-1);
+			}
+
+
+			// 绘制参考图像的算子图像
+			if (use_ref_image_data && !ref_opera_image.IsNull())
+			{
+				WTL::CDC ref_opera_dc;
+				ref_opera_dc.CreateCompatibleDC(temp_dc);
+				ref_opera_dc.SaveDC();
+				ref_opera_dc.SelectBitmap(ref_opera_image);
+
+				temp_dc.BitBlt(0, 0, width(), height(), ref_opera_dc, 0, 0, SRCPAINT);
+				//temp_dc.TransparentBlt(0, 0, width(), height(), ref_opera_dc, 0, 0, width(), height(), RGB(0, 0, 0));
+
+				ref_opera_dc.RestoreDC(-1);
+			}
+
+			mem_dc.BitBlt(offset_x, offset_y, width(), height(), temp_dc, 0, 0, SRCCOPY);
+			temp_dc.RestoreDC(-1);
+
+			return true;
+		}
+
+		bool draw_gaussian(HDC dc, int offset_x = 0, int offset_y = 0)
+		{
+			// 双缓冲
+			WTL::CDCHandle temp_dc;
+			temp_dc.CreateCompatibleDC(dc);
+			temp_dc.SaveDC();
+
+			CRect image_rect = { 0,0,width(),height() };
+			CRect out = image_rect;
+			out.OffsetRect(offset_x, offset_y);
+			WTL::CMemoryDC mem_dc{ dc,out };
+
+			WTL::CBitmap temp_bitmap;
+			// 注意创建与原始dc兼容的位图
+			temp_bitmap.CreateCompatibleBitmap(dc, width(), height());
+			temp_dc.SelectBitmap(temp_bitmap);
+
+			// 绘制算子图像
+			if (!opera_image.IsNull())
+			{
+				WTL::CDC opera_dc;
+				opera_dc.CreateCompatibleDC(temp_dc);
+				opera_dc.SaveDC();
+				opera_dc.SelectBitmap(opera_image);
+
+				//temp_dc.BitBlt(0, 0, width(), height(), opera_dc, 0, 0, SRCPAINT);
+				temp_dc.TransparentBlt(0, 0, width(), height(), opera_dc, 0, 0, width(), height(), RGB(0, 0, 0));
+
+				opera_dc.RestoreDC(-1);
 			}
 
 			// 绘制二值化图像
@@ -1131,21 +1226,47 @@ namespace freeze {
 			return true;
 		}
 
-		bool draw_opera_only(HDC dc, int offset_x = 0, int offset_y = 0)
+		bool draw_log(HDC dc, int offset_x = 0, int offset_y = 0)
 		{
+			// 双缓冲
+			WTL::CDCHandle temp_dc;
+			temp_dc.CreateCompatibleDC(dc);
+			temp_dc.SaveDC();
+
 			CRect image_rect = { 0,0,width(),height() };
 			CRect out = image_rect;
 			out.OffsetRect(offset_x, offset_y);
 			WTL::CMemoryDC mem_dc{ dc,out };
 
-			WTL::CDC temp_dc;
-			temp_dc.CreateCompatibleDC(dc);
-			temp_dc.SaveDC();
+			WTL::CBitmap temp_bitmap;
+			// 注意创建与原始dc兼容的位图
+			temp_bitmap.CreateCompatibleBitmap(dc, width(), height());
+			temp_dc.SelectBitmap(temp_bitmap);
 
 			// 绘制算子图像
 			if (!opera_image.IsNull())
 			{
-				temp_dc.SelectBitmap(opera_image);
+				WTL::CDC opera_dc;
+				opera_dc.CreateCompatibleDC(temp_dc);
+				opera_dc.SaveDC();
+				opera_dc.SelectBitmap(opera_image);
+
+				//temp_dc.BitBlt(0, 0, width(), height(), opera_dc, 0, 0, SRCPAINT);
+				temp_dc.TransparentBlt(0, 0, width(), height(), opera_dc, 0, 0, width(), height(), RGB(0, 0, 0));
+
+				opera_dc.RestoreDC(-1);
+			}
+
+			// 绘制二值化图像
+			if (use_threshold && !threshold_image.IsNull())
+			{
+				WTL::CDC threshold_dc;
+				threshold_dc.CreateCompatibleDC(temp_dc);
+				threshold_dc.SaveDC();
+				threshold_dc.SelectBitmap(threshold_image);
+				//temp_dc.BitBlt(0, 0, width(), height(), threshold_dc, 0, 0, SRCPAINT);
+				temp_dc.TransparentBlt(0, 0, width(), height(), threshold_dc, 0, 0, width(), height(), RGB(0, 0, 0));
+				threshold_dc.RestoreDC(-1);
 			}
 
 			mem_dc.BitBlt(offset_x, offset_y, width(), height(), temp_dc, 0, 0, SRCCOPY);
@@ -1258,7 +1379,7 @@ namespace freeze {
 		ImageData opera_image; // 算子图像
 		ImageData ref_opera_image; // 参考图像的算子图像
 		ImageData threshold_image; // 二值化图像
-		ImageData l_o_g_image;// LoG算子图像
+		//ImageData log_image;// LoG算子图像
 
 		bool exclude_other = false; // 排除其它图像的显示，仅显示原始图像
 		bool exclude_defect = true; // 单独排除缺陷图像(训练图像)的显示
@@ -1267,7 +1388,10 @@ namespace freeze {
 		bool use_gaussian = false; // 自动加载高斯模糊，控制图像数据切换时是否自动运算相应的高斯模糊。
 		bool use_laplacian_of_gaussian = false; // 自动加载LOG，控制图像数据切换时是否自动运算相应的LOG。
 		bool use_ref_image_data = false; //使用参考图像数据(使用算子时)
+		bool use_minus = false; // 启用减影
 		bool use_threshold = false; // 使用二值化图像
+		bool use_erosion = false; //启用侵蚀
+		bool use_dilation = false; //启用膨胀	
 	};
 
 	using bmp_image = image_any<>;
