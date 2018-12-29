@@ -31,6 +31,7 @@ namespace freeze {
 			HANDLE hEvent;
 			cv::InputArray inArray;
 			cv::InputOutputArray outArray;
+			cv::Scalar color;
 		};
 
 		struct GaussianParam
@@ -185,7 +186,7 @@ namespace freeze {
 					//auto element = cv::getStructuringElement(0, size);
 					//cv::dilate(ret_mat, dilate_mat, element);
 
-					roi_color(/*dilate_mat*/ret_mat, pCannyParam->outArray);
+					roi_color(/*dilate_mat*/ret_mat, pCannyParam->outArray, pCannyParam->color);
 				}
 				catch (const std::exception& e)
 				{
@@ -583,6 +584,7 @@ namespace freeze {
 					opera_event,
 					image_data_ref_opera,
 					out_ref_mat,
+					cv::Scalar{0.0,255.0,0.0},
 				};
 
 				auto hRefThread = CreateThread(nullptr, 0, AsyncOpera, &param, 0, nullptr);
@@ -610,6 +612,7 @@ namespace freeze {
 					opera_event,
 					image_data_opera,
 					out_mat,
+					cv::Scalar{ 0.0,0.0,255.0 },
 			};
 
 			auto hThread = CreateThread(nullptr, 0, AsyncOpera, &param, 0, nullptr);
