@@ -22,8 +22,8 @@ namespace freeze {
 		{
 			double threshold1 = V_THRESHOLD_1;
 			double threshold2 = V_THRESHOLD_2;
-			int    aperture   = V_APERTURE;
-			bool   l2         = V_L2;
+			int    aperture = V_APERTURE;
+			bool   l2 = V_L2;
 		};
 
 		struct CannyWithArrayParam : CannyParam
@@ -174,9 +174,9 @@ namespace freeze {
 					cv::Canny(
 						pCannyParam->inArray,
 						ret_mat,
-						pCannyParam->threshold1, 
-						pCannyParam->threshold2, 
-						pCannyParam->aperture/*3*/, 
+						pCannyParam->threshold1,
+						pCannyParam->threshold2,
+						pCannyParam->aperture/*3*/,
 						pCannyParam->l2
 					);
 
@@ -185,7 +185,7 @@ namespace freeze {
 					//auto element = cv::getStructuringElement(0, size);
 					//cv::dilate(ret_mat, dilate_mat, element);
 
-					roi_color(/*dilate_mat*/ret_mat,pCannyParam->outArray);
+					roi_color(/*dilate_mat*/ret_mat, pCannyParam->outArray);
 				}
 				catch (const std::exception& e)
 				{
@@ -413,6 +413,11 @@ namespace freeze {
 			{
 				create_threshold_bitmap(dc);
 			}
+
+			if (use_dilation || use_erosion)
+			{
+				create_erode_dilate_bitmap(dc);
+			}
 		}
 
 		// 创建原始图像位图
@@ -515,20 +520,39 @@ namespace freeze {
 		// 创建二值化位图 直接替换或赋值底层数据
 		void create_threshold_bitmap(HDC dc)
 		{
-			if (threshold_image.IsNull())
-			{
-				threshold_image.CreateCompatibleBitmap(dc, width(), height());
-			}
+			reset_threshold_image();
+			if (image_data_threshold.empty())return;
 
 			unsigned char buffer[sizeof(BITMAPINFO) + 0xFF * sizeof(RGBQUAD)];
 			auto bitmap_info = reinterpret_cast<BITMAPINFO*>(buffer);
 			freeze::fill_bitmap_info(bitmap_info, width(), height(), bpp(), image_any<ImageData>::planes);
 
-			threshold_image.SetDIBits(
+			auto ret = threshold_image.CreateDIBitmap(
 				dc,
-				0,
-				height(),
+				&bitmap_info->bmiHeader,
+				CBM_INIT,
 				image_data_threshold.data,
+				bitmap_info,
+				DIB_RGB_COLORS
+			);
+		}
+
+		// 创建侵蚀膨胀位图
+		void create_erode_dilate_bitmap(HDC dc)
+		{
+			//erode_dilate_image
+			reset_erode_dilate_image();
+			if (image_data_erode_dilate.empty())return;
+
+			unsigned char buffer[sizeof(BITMAPINFO) + 0xFF * sizeof(RGBQUAD)];
+			auto bitmap_info = reinterpret_cast<BITMAPINFO*>(buffer);
+			freeze::fill_bitmap_info(bitmap_info, width(), height(), bpp(), image_any<ImageData>::planes);
+
+			auto ret = erode_dilate_image.CreateDIBitmap(
+				dc,
+				&bitmap_info->bmiHeader,
+				CBM_INIT,
+				image_data_erode_dilate.data,
 				bitmap_info,
 				DIB_RGB_COLORS
 			);
@@ -595,16 +619,13 @@ namespace freeze {
 				set_data_opera(out_mat);
 			}
 			CloseHandle(hThread);
-		}
 
-		void test_canny()
-		{
-			reset_data_opera();
-
-			cv::Mat edges;
-			cv::Canny(image_data_opera, edges, 107, 67);
-
-			set_data_opera(edges);
+			// 测试膨胀
+			//cv::Mat dilate_mat;
+			//cv::Size size{ 11, 11 };
+			//auto element = cv::getStructuringElement(0, size);
+			//cv::dilate(image_data_opera, dilate_mat, element);
+			//set_data_opera(dilate_mat);
 		}
 
 		void laplacian()
@@ -763,17 +784,7 @@ namespace freeze {
 		{
 			set_event();
 
-			// 如果是在二值化以后使用时
-			if (use_threshold)
-			{
-				reset_data_threshold();
-			}
-			else
-			{
-				// 每次运行，算子数据都需要重置为原始数据的副本
-				reset_data_opera();
-			}
-			
+			reset_data_erode_dilate();
 
 			cv::Mat out_mat;
 			ErosianDilationnWithArrayParam param = {
@@ -782,7 +793,7 @@ namespace freeze {
 				type,
 				iter,
 				opera_event,
-				use_threshold?image_data_threshold:image_data_opera,
+				image_data_erode_dilate,
 				out_mat,
 				use_erosion,
 			};
@@ -791,15 +802,7 @@ namespace freeze {
 			auto result = WaitForSingleObject(hThread, INFINITE);
 			if (WAIT_OBJECT_0 == result)
 			{
-				// 如果是在二值化以后使用时
-				if (use_threshold)
-				{
-					set_data_threshold(out_mat);
-				}
-				else
-				{
-					set_data_opera(out_mat);
-				}
+				set_data_erode_dilate(out_mat);
 			}
 			CloseHandle(hThread);
 		}
@@ -906,15 +909,23 @@ namespace freeze {
 			image_data_threshold = image_data_opera.clone();
 		}
 
-		void set_image_data_erode_dilate(cv::Mat const& mat)
+		void set_data_erode_dilate(cv::Mat const& mat)
 		{
 			image_data_erode_dilate = mat/*.clone()*/;
 		}
 
-		//重置数据(侵蚀膨胀)--从image_data_opera数据中
-		void reset_image_data_erode_dilate()
+		//重置数据(侵蚀膨胀)--从image_data_opera(或image_data_threshold)数据中
+		void reset_data_erode_dilate()
 		{
-			image_data_erode_dilate = image_data_opera.clone();
+			if (use_threshold)
+			{
+				image_data_erode_dilate = image_data_threshold.clone();
+			}
+			else
+			{
+				image_data_erode_dilate = image_data_opera.clone();
+			}
+			
 		}
 
 		//void set_data_log(cv::Mat const& mat)
@@ -1200,7 +1211,7 @@ namespace freeze {
 
 			return draw_raw(dc, offset_x, offset_y);
 		}
-		
+
 		// 绘制
 	private:
 
@@ -1279,16 +1290,30 @@ namespace freeze {
 			// 绘制算子图像
 			if (!opera_image.IsNull())
 			{
-				WTL::CDC opera_dc;
-				opera_dc.CreateCompatibleDC(temp_dc);
-				opera_dc.SaveDC();
-				opera_dc.SelectBitmap(opera_image);
+				if ((use_dilation || use_erosion) && !erode_dilate_image.IsNull())
+				{
+					WTL::CDC erode_dilate_dc;
+					erode_dilate_dc.CreateCompatibleDC(temp_dc);
+					erode_dilate_dc.SaveDC();
+					erode_dilate_dc.SelectBitmap(erode_dilate_image);
 
-				//temp_dc.BitBlt(0, 0, width(), height(), opera_dc, 0, 0, SRCPAINT);
-				//temp_dc.BitBlt(0, 0, width(), height(), opera_dc, 0, 0, SRCCOPY);
-				temp_dc.TransparentBlt(0, 0, width(), height(), opera_dc, 0, 0, width(), height(), RGB(0, 0, 0));
+					//temp_dc.BitBlt(0, 0, width(), height(), erode_dilate_dc, 0, 0, SRCPAINT);
+					temp_dc.TransparentBlt(0, 0, width(), height(), erode_dilate_dc, 0, 0, width(), height(), RGB(0, 0, 0));
 
-				opera_dc.RestoreDC(-1);
+					erode_dilate_dc.RestoreDC(-1);
+				}
+				else
+				{
+					WTL::CDC opera_dc;
+					opera_dc.CreateCompatibleDC(temp_dc);
+					opera_dc.SaveDC();
+					opera_dc.SelectBitmap(opera_image);
+
+					//temp_dc.BitBlt(0, 0, width(), height(), opera_dc, 0, 0, SRCPAINT);
+					temp_dc.TransparentBlt(0, 0, width(), height(), opera_dc, 0, 0, width(), height(), RGB(0, 0, 0));
+
+					opera_dc.RestoreDC(-1);
+				}
 			}
 
 
@@ -1337,7 +1362,7 @@ namespace freeze {
 				opera_dc.SaveDC();
 				opera_dc.SelectBitmap(opera_image);
 
-				//temp_dc.BitBlt(0, 0, width(), height(), opera_dc, 0, 0, SRCPAINT);
+				//temp_dc.BitBlt(0, 0, width(), height(), opera_dc, 0, 0, /*SRCPAINT*/SRCCOPY);
 				temp_dc.TransparentBlt(0, 0, width(), height(), opera_dc, 0, 0, width(), height(), RGB(0, 0, 0));
 
 				opera_dc.RestoreDC(-1);
@@ -1346,13 +1371,26 @@ namespace freeze {
 			// 绘制二值化图像(在减影图像的基础上)
 			if (use_threshold && !threshold_image.IsNull())
 			{
-				WTL::CDC threshold_dc;
-				threshold_dc.CreateCompatibleDC(temp_dc);
-				threshold_dc.SaveDC();
-				threshold_dc.SelectBitmap(threshold_image);
-				//temp_dc.BitBlt(0, 0, width(), height(), threshold_dc, 0, 0, SRCPAINT);
-				temp_dc.TransparentBlt(0, 0, width(), height(), threshold_dc, 0, 0, width(), height(), RGB(0, 0, 0));
-				threshold_dc.RestoreDC(-1);
+				if (!erode_dilate_image.IsNull())
+				{
+					WTL::CDC erode_dilate_dc;
+					erode_dilate_dc.CreateCompatibleDC(temp_dc);
+					erode_dilate_dc.SaveDC();
+					erode_dilate_dc.SelectBitmap(erode_dilate_image);
+					//temp_dc.BitBlt(0, 0, width(), height(), erode_dilate_dc, 0, 0, SRCPAINT);
+					temp_dc.TransparentBlt(0, 0, width(), height(), erode_dilate_dc, 0, 0, width(), height(), RGB(0, 0, 0));
+					erode_dilate_dc.RestoreDC(-1);
+				}
+				else
+				{
+					WTL::CDC threshold_dc;
+					threshold_dc.CreateCompatibleDC(temp_dc);
+					threshold_dc.SaveDC();
+					threshold_dc.SelectBitmap(threshold_image);
+					//temp_dc.BitBlt(0, 0, width(), height(), threshold_dc, 0, 0, SRCPAINT);
+					temp_dc.TransparentBlt(0, 0, width(), height(), threshold_dc, 0, 0, width(), height(), RGB(0, 0, 0));
+					threshold_dc.RestoreDC(-1);
+				}
 			}
 
 			mem_dc.BitBlt(offset_x, offset_y, width(), height(), temp_dc, 0, 0, SRCCOPY);
@@ -1395,13 +1433,26 @@ namespace freeze {
 			// 绘制二值化图像(直接二值化)
 			if (use_threshold && !threshold_image.IsNull())
 			{
-				WTL::CDC threshold_dc;
-				threshold_dc.CreateCompatibleDC(temp_dc);
-				threshold_dc.SaveDC();
-				threshold_dc.SelectBitmap(threshold_image);
-				//temp_dc.BitBlt(0, 0, width(), height(), threshold_dc, 0, 0, SRCPAINT);
-				temp_dc.TransparentBlt(0, 0, width(), height(), threshold_dc, 0, 0, width(), height(), RGB(0, 0, 0));
-				threshold_dc.RestoreDC(-1);
+				if (!erode_dilate_image.IsNull())
+				{
+					WTL::CDC erode_dilate_dc;
+					erode_dilate_dc.CreateCompatibleDC(temp_dc);
+					erode_dilate_dc.SaveDC();
+					erode_dilate_dc.SelectBitmap(erode_dilate_image);
+					//temp_dc.BitBlt(0, 0, width(), height(), erode_dilate_dc, 0, 0, SRCPAINT);
+					temp_dc.TransparentBlt(0, 0, width(), height(), erode_dilate_dc, 0, 0, width(), height(), RGB(0, 0, 0));
+					erode_dilate_dc.RestoreDC(-1);
+				}
+				else
+				{
+					WTL::CDC threshold_dc;
+					threshold_dc.CreateCompatibleDC(temp_dc);
+					threshold_dc.SaveDC();
+					threshold_dc.SelectBitmap(threshold_image);
+					//temp_dc.BitBlt(0, 0, width(), height(), threshold_dc, 0, 0, SRCPAINT);
+					temp_dc.TransparentBlt(0, 0, width(), height(), threshold_dc, 0, 0, width(), height(), RGB(0, 0, 0));
+					threshold_dc.RestoreDC(-1);
+				}
 			}
 
 			mem_dc.BitBlt(offset_x, offset_y, width(), height(), temp_dc, 0, 0, SRCCOPY);
@@ -1483,6 +1534,18 @@ namespace freeze {
 			reset_image_internal(raw_image);
 		}
 
+		// 销毁二值化图像的显示图像
+		void reset_threshold_image()
+		{
+			reset_image_internal(threshold_image);
+		}
+
+		// 销毁侵蚀膨胀图像的显示图像
+		void reset_erode_dilate_image()
+		{
+			reset_image_internal(erode_dilate_image);
+		}
+
 		void reset_image_internal(ImageData& image)
 		{
 			if (!image.IsNull())
@@ -1543,6 +1606,7 @@ namespace freeze {
 		ImageData ref_opera_image;                // 参考图像的算子图像
 		ImageData threshold_image;                // 二值化图像
 		//ImageData log_image;                    // LoG算子图像
+		ImageData erode_dilate_image;             // 侵蚀膨胀图像
 
 		bool exclude_other = false;               // 排除其它图像的显示，仅显示原始图像
 		bool exclude_defect = true;               // 单独排除缺陷图像(训练图像)的显示
