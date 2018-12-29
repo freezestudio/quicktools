@@ -402,12 +402,12 @@ public:
 		{
 			if (!m_Bitmap.is_exclude_other_image())
 			{
-				m_Bitmap.canny(
-					g_CannyParam.threshold1,
-					g_CannyParam.threshold2,
-					g_CannyParam.aperture,
-					g_CannyParam.l2
-				);
+					m_Bitmap.canny(
+						g_CannyParam.threshold1,
+						g_CannyParam.threshold2,
+						g_CannyParam.aperture,
+						g_CannyParam.l2
+					);
 			}
 
 			ResetBitmap();

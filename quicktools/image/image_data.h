@@ -31,7 +31,6 @@ namespace freeze {
 			HANDLE hEvent;
 			cv::InputArray inArray;
 			cv::InputOutputArray outArray;
-			cv::Scalar color;
 		};
 
 		struct GaussianParam
@@ -131,17 +130,61 @@ namespace freeze {
 			}
 		}
 
+		// 区域着色
+		inline void roi_color(cv::InputArray image, cv::InputOutputArray edges, cv::Scalar const& color = cv::Scalar{ 0.0,0.0,255.0, })
+		{
+			std::vector<std::vector<cv::Point>> contours;
+			std::vector<cv::Vec4i> hierarchy;
+
+			cv::findContours(image, contours, hierarchy, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
+
+#pragma omp parallel for
+			for (int i = 0; i < contours.size(); ++i)
+			{
+				cv::drawContours(edges, contours, i, color, 2, cv::LINE_4/*, hierarchy, 0*/);
+			}
+		}
+
+		// 颜色替换
+		inline void change_color(cv::Vec3b const& old_color, cv::Vec3b const& new_color = cv::Vec3b{ 0,0,255 })
+		{
+
+		}
+
 		inline static DWORD CALLBACK AsyncOpera(LPVOID pParam)
 		{
 			CannyWithArrayParam* pCannyParam = reinterpret_cast<CannyWithArrayParam*>(pParam);
 			auto result = WaitForSingleObject(pCannyParam->hEvent, INFINITE);
 			if (WAIT_OBJECT_0 == result)
 			{
-				cv::Mat ret_mat;
 				try
 				{
-					cv::Canny(pCannyParam->inArray, ret_mat,
-						pCannyParam->threshold1, pCannyParam->threshold2, pCannyParam->aperture, pCannyParam->l2);
+					//cv::Canny(
+					//	pCannyParam->inArray, 
+					//	pCannyParam->outArray,
+					//	pCannyParam->threshold1, 
+					//	pCannyParam->threshold2, 
+					//	pCannyParam->aperture, 
+					//	pCannyParam->l2
+					//);
+
+					// 以下能成功调用
+					cv::Mat ret_mat;
+					cv::Canny(
+						pCannyParam->inArray,
+						ret_mat,
+						pCannyParam->threshold1, 
+						pCannyParam->threshold2, 
+						/*pCannyParam->aperture*/3, 
+						pCannyParam->l2
+					);
+
+					cv::Mat dilate_mat;
+					cv::Size size{ pCannyParam->aperture ,pCannyParam->aperture };
+					auto element = cv::getStructuringElement(0, size);
+					cv::dilate(ret_mat, dilate_mat, element);
+
+					roi_color(dilate_mat,pCannyParam->outArray);
 				}
 				catch (const std::exception& e)
 				{
@@ -150,17 +193,6 @@ namespace freeze {
 					return FALSE;
 				}
 
-				std::vector<std::vector<cv::Point>> contours;
-				std::vector<cv::Vec4i> hierarchy;
-
-				cv::findContours(ret_mat, contours, hierarchy, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
-				//cv::Scalar color{ 0.0,0.0,255.0, };
-
-#pragma omp parallel for
-				for (int i = 0; i < contours.size(); ++i)
-				{
-					cv::drawContours(pCannyParam->outArray, contours, i, pCannyParam->color, 2, cv::LINE_4/*, hierarchy, 0*/);
-				}
 				SetEvent(pCannyParam->hEvent);
 				return TRUE;
 			}
@@ -447,7 +479,7 @@ namespace freeze {
 			auto bitmap_info = reinterpret_cast<BITMAPINFO*>(buffer);
 			freeze::fill_bitmap_info(bitmap_info, width(), height(), bpp(), image_any<ImageData>::planes);
 
-			opera_image.CreateDIBitmap(
+			auto ret = opera_image.CreateDIBitmap(
 				dc,
 				&bitmap_info->bmiHeader,
 				CBM_INIT,
@@ -455,6 +487,28 @@ namespace freeze {
 				bitmap_info,
 				DIB_RGB_COLORS
 			);
+			//auto err = ::GetLastError();
+
+			//if (opera_image.IsNull())
+			//{
+			//	opera_image.CreateCompatibleBitmap(dc, width(), height());
+			//}
+			//if (image_data_opera.empty())return;
+
+			//unsigned char buffer[sizeof(BITMAPINFO) + 0xFF * sizeof(RGBQUAD)];
+			//auto bitmap_info = reinterpret_cast<BITMAPINFO*>(buffer);
+			//freeze::fill_bitmap_info(bitmap_info, width(), height(), bpp(), image_any<ImageData>::planes);
+
+			//ERROR_INVALID_PARAMETER;
+			//auto ret = opera_image.SetDIBits(
+			//	dc,
+			//	0,
+			//	height(),
+			//	image_data_opera.data,
+			//	bitmap_info,
+			//	DIB_RGB_COLORS
+			//);
+			////auto err = ::GetLastError();
 		}
 
 		// 创建二值化位图 直接替换或赋值底层数据
@@ -504,7 +558,6 @@ namespace freeze {
 					opera_event,
 					image_data_ref_opera,
 					out_ref_mat,
-					cv::Scalar{0.0,255.0,0.0},
 				};
 
 				auto hRefThread = CreateThread(nullptr, 0, AsyncOpera, &param, 0, nullptr);
@@ -523,15 +576,15 @@ namespace freeze {
 				image_data_opera.size(),
 				CV_8UC3
 			);
+			//cv::Mat out_mat;
 			CannyWithArrayParam param = {
-				threshold1,
-				threshold2,
-				aperture,
-				l2,
-				opera_event,
-				image_data_opera,
-				out_mat,
-				cv::Scalar{ 0.0,0.0,255.0 },
+					threshold1,
+					threshold2,
+					aperture,
+					l2,
+					opera_event,
+					image_data_opera,
+					out_mat,
 			};
 
 			auto hThread = CreateThread(nullptr, 0, AsyncOpera, &param, 0, nullptr);
@@ -541,6 +594,16 @@ namespace freeze {
 				set_data_opera(out_mat);
 			}
 			CloseHandle(hThread);
+		}
+
+		void test_canny()
+		{
+			reset_data_opera();
+
+			cv::Mat edges;
+			cv::Canny(image_data_opera, edges, 107, 67);
+
+			set_data_opera(edges);
 		}
 
 		void laplacian()
@@ -699,8 +762,17 @@ namespace freeze {
 		{
 			set_event();
 
-			// 每次运行，算子数据都需要重置为原始数据的副本
-			reset_data_opera();
+			// 如果是在二值化以后使用时
+			if (use_threshold)
+			{
+				reset_data_threshold();
+			}
+			else
+			{
+				// 每次运行，算子数据都需要重置为原始数据的副本
+				reset_data_opera();
+			}
+			
 
 			cv::Mat out_mat;
 			ErosianDilationnWithArrayParam param = {
@@ -709,7 +781,7 @@ namespace freeze {
 				type,
 				iter,
 				opera_event,
-				image_data_opera,
+				use_threshold?image_data_threshold:image_data_opera,
 				out_mat,
 				use_erosion,
 			};
@@ -718,7 +790,15 @@ namespace freeze {
 			auto result = WaitForSingleObject(hThread, INFINITE);
 			if (WAIT_OBJECT_0 == result)
 			{
-				set_data_opera(out_mat);
+				// 如果是在二值化以后使用时
+				if (use_threshold)
+				{
+					set_data_threshold(out_mat);
+				}
+				else
+				{
+					set_data_opera(out_mat);
+				}
 			}
 			CloseHandle(hThread);
 		}
@@ -1204,6 +1284,7 @@ namespace freeze {
 				opera_dc.SelectBitmap(opera_image);
 
 				//temp_dc.BitBlt(0, 0, width(), height(), opera_dc, 0, 0, SRCPAINT);
+				//temp_dc.BitBlt(0, 0, width(), height(), opera_dc, 0, 0, SRCCOPY);
 				temp_dc.TransparentBlt(0, 0, width(), height(), opera_dc, 0, 0, width(), height(), RGB(0, 0, 0));
 
 				opera_dc.RestoreDC(-1);
