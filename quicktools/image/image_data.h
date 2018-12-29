@@ -143,6 +143,7 @@ namespace freeze {
 			{
 				cv::drawContours(edges, contours, i, color, 2, cv::LINE_4/*, hierarchy, 0*/);
 			}
+			//cv::floodFill(edges, cv::Point{ 50,300 }, cv::Scalar{ 0.0,0.0,255.0, });
 		}
 
 		// ÑÕÉ«Ìæ»»
@@ -175,16 +176,16 @@ namespace freeze {
 						ret_mat,
 						pCannyParam->threshold1, 
 						pCannyParam->threshold2, 
-						/*pCannyParam->aperture*/3, 
+						pCannyParam->aperture/*3*/, 
 						pCannyParam->l2
 					);
 
-					cv::Mat dilate_mat;
-					cv::Size size{ pCannyParam->aperture ,pCannyParam->aperture };
-					auto element = cv::getStructuringElement(0, size);
-					cv::dilate(ret_mat, dilate_mat, element);
+					//cv::Mat dilate_mat;
+					//cv::Size size{ pCannyParam->aperture ,pCannyParam->aperture };
+					//auto element = cv::getStructuringElement(0, size);
+					//cv::dilate(ret_mat, dilate_mat, element);
 
-					roi_color(dilate_mat,pCannyParam->outArray);
+					roi_color(/*dilate_mat*/ret_mat,pCannyParam->outArray);
 				}
 				catch (const std::exception& e)
 				{
