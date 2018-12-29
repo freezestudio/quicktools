@@ -21,6 +21,8 @@ namespace freeze {
 
 		// BorderType
 		WTL::CComboBox m_ComboBorderType; //IDC_COMBO_LOG_BORDER_TYPE
+		// ThresholdType
+		WTL::CComboBox m_ComboThresholdType; //IDC_COMBO_THRESHOLD_TYPE_LOG
 
 		// Laplacian Kernel
 
@@ -86,7 +88,7 @@ namespace freeze {
 			SetDlgItemInt(IDC_EDIT_G_SIGMA_Y, 0);
 
 			m_ComboBorderType.Attach(GetDlgItem(IDC_COMBO_LOG_BORDER_TYPE));
-
+			m_ComboThresholdType.Attach(GetDlgItem(IDC_COMBO_THRESHOLD_TYPE_LOG)); //IDC_COMBO_THRESHOLD_TYPE_LOG
 			// Laplace
 
 			m_TrackKernelSize.Attach(GetDlgItem(IDC_SLIDER_LOG_KERNEL));
@@ -116,6 +118,21 @@ namespace freeze {
 				this->m_ComboBorderType.AddString(item);
 			});
 			m_ComboBorderType.SetCurSel(0);
+
+			wchar_t combo_threshold[][11] = {
+				L"BINARY",
+				L"BINARY_INV",
+				L"TRUNC",
+				L"TOZERO",
+				L"TOZERO_INV",
+				L"MASK",
+				//L"OTSU",
+				//L"TRIANGLE",
+			};
+			std::for_each(std::begin(combo_threshold), std::end(combo_threshold), [this](auto item) {
+				this->m_ComboThresholdType.AddString(item);
+			});
+			m_ComboThresholdType.SetCurSel(0);
 
 			// 减影
 			m_TrackThresholdLoG.Attach(GetDlgItem(IDC_SLIDER_THRESHOLD_LOG));
@@ -204,6 +221,9 @@ namespace freeze {
 				break;
 			case IDC_COMBO_LOG_BORDER_TYPE: // 边框类型
 				OnBorderTypeChanged(uNotifyCode);
+				break;
+			case IDC_COMBO_THRESHOLD_TYPE_LOG: // 边框类型
+				OnThresholdTypeChanged(uNotifyCode);
 				break;
 			case IDC_EDIT_THRESHOLD_LOG: // 减影阈值
 				OnThresholdChanged(uNotifyCode);
@@ -330,6 +350,25 @@ namespace freeze {
 			}
 		}
 
+		//
+		void OnThresholdTypeChanged(UINT uNotifyCode)
+		{
+			int selected_index = -1;
+			switch (uNotifyCode)
+			{
+			default:
+				break;
+			case CBN_SELCHANGE:
+				selected_index = m_ComboThresholdType.GetCurSel();
+				if (m_RecvMsgWnd && (selected_index != -1))
+				{
+					auto w = MAKEWPARAM(IDC_COMBO_THRESHOLD_TYPE_LOG, selected_index);
+					::PostMessage(m_RecvMsgWnd, WM_LAPLACIAN_OF_GAUSSIAN, w, 0);
+				}
+				break;
+			}
+		}
+
 		void OnKernelSizeChanged(UINT uNotifyCode)
 		{
 			IDC_EDIT_LOG_KERNEL;
@@ -385,6 +424,7 @@ namespace freeze {
 			auto checked = m_CheckMinusLoG.GetCheck() == BST_CHECKED;
 			m_ThresholdLoG.EnableWindow(checked);
 			m_TrackThresholdLoG.EnableWindow(checked);
+			m_ComboThresholdType.EnableWindow(checked);
 
 			if (m_RecvMsgWnd)
 			{
@@ -419,4 +459,3 @@ namespace freeze {
 		}
 	};
 }
-

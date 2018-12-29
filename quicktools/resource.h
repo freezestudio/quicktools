@@ -11,7 +11,6 @@
 #define IDD_GAUSSIAN                    208
 #define IDB_BITMAP_TOOLS                211
 #define IDD_DIALOG_LOG                  212
-#define IDD_DIALOG_                     214
 #define IDD_DIALOG_ED                   214
 #define ID_RESET_BTN                    999
 #define IDC_THRESHOLD_SLIDER_1          1000
@@ -60,6 +59,8 @@
 #define IDC_COMBO_ED_BORDER_TYPE        1041
 #define IDC_EDIT_ITER_COUNT             1042
 #define ID_RESET_ED                     1043
+#define IDC_COMBO_THRESHOLD_TYPE        1044
+#define IDC_COMBO_THRESHOLD_TYPE_LOG    1045
 #define ID_WINDOW_CLOSE                 32772
 #define ID_WINDOW_CLOSE_ALL             32773
 #define ID_CLV_32776                    32776
@@ -85,7 +86,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        216
 #define _APS_NEXT_COMMAND_VALUE         32792
-#define _APS_NEXT_CONTROL_VALUE         1044
+#define _APS_NEXT_CONTROL_VALUE         1046
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

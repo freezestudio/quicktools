@@ -20,6 +20,8 @@ namespace freeze {
 
 		// BorderType
 		WTL::CComboBox m_ComboBorderType;
+		// ThresholdType
+		WTL::CComboBox m_ComboThresholdType; // IDC_COMBO_THRESHOLD_TYPE
 
 		// 减影
 		WTL::CButton m_CheckMinus;//IDC_CHECK_MINUS
@@ -73,6 +75,7 @@ namespace freeze {
 			m_CheckSigmaY.Attach(GetDlgItem(IDC_CHECK_SIGMA_Y));
 
 			m_ComboBorderType.Attach(GetDlgItem(IDC_COMBO_BORDER_TYPE));
+			m_ComboThresholdType.Attach(GetDlgItem(IDC_COMBO_THRESHOLD_TYPE)); // IDC_COMBO_THRESHOLD_TYPE
 
 			SetDlgItemInt(IDC_EDIT_KERNEL_X, 3);
 			SetDlgItemInt(IDC_EDIT_KERNEL_Y, 3);
@@ -95,6 +98,22 @@ namespace freeze {
 				this->m_ComboBorderType.AddString(item);
 			});
 			m_ComboBorderType.SetCurSel(0);
+
+			//
+			wchar_t combo_threshold[][11] = {
+				L"BINARY",
+				L"BINARY_INV",
+				L"TRUNC",
+				L"TOZERO",
+				L"TOZERO_INV",
+				L"MASK",
+				//L"OTSU",
+				//L"TRIANGLE",
+			};
+			std::for_each(std::begin(combo_threshold), std::end(combo_threshold), [this](auto item) {
+				this->m_ComboThresholdType.AddString(item);
+			});
+			m_ComboThresholdType.SetCurSel(0);
 
 			// 减影
 			m_TrackThresholdMid.Attach(GetDlgItem(IDC_SLIDER_THRESHOLD_MID));
@@ -155,6 +174,9 @@ namespace freeze {
 			case IDC_COMBO_BORDER_TYPE: // 边框类型
 				OnBorderTypeChanged(uNotifyCode);
 				break;
+			case IDC_COMBO_THRESHOLD_TYPE: // 二值化类型
+				OnThresholdTypeChanged(uNotifyCode);
+				break;
 			case IDC_EDIT_THRESHOLD_MID: // 减影阈值
 				OnThresholdChanged(uNotifyCode);
 				break;
@@ -173,6 +195,24 @@ namespace freeze {
 				if (m_RecvMsgWnd &&(selected_index!=-1))
 				{
 					auto w = MAKEWPARAM(IDC_COMBO_BORDER_TYPE, selected_index);
+					::PostMessage(m_RecvMsgWnd, WM_GAUSSIAN, w, 0);
+				}
+				break;
+			}
+		}
+
+		void OnThresholdTypeChanged(UINT uNotifyCode)
+		{
+			int selected_index = -1;
+			switch (uNotifyCode)
+			{
+			default:
+				break;
+			case CBN_SELCHANGE:
+				selected_index = m_ComboThresholdType.GetCurSel();
+				if (m_RecvMsgWnd && (selected_index != -1))
+				{
+					auto w = MAKEWPARAM(IDC_COMBO_THRESHOLD_TYPE, selected_index);
 					::PostMessage(m_RecvMsgWnd, WM_GAUSSIAN, w, 0);
 				}
 				break;
@@ -249,6 +289,7 @@ namespace freeze {
 			auto checked = m_CheckMinus.GetCheck() == BST_CHECKED;
 			m_ThresholdMid.EnableWindow(checked);
 			m_TrackThresholdMid.EnableWindow(checked);
+			m_ComboThresholdType.EnableWindow(checked);
 
 			if (m_RecvMsgWnd)
 			{

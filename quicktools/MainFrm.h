@@ -403,8 +403,15 @@ public:
 
 		m_TabView.AddPage(pView->m_hWnd, m_ActivedImage.c_str());
 
-		bool show_ref_image = m_CannyDlg.IsRefImageShow();
-		pView->ShowRefImage(show_ref_image);
+		// Canny 对话框处于显示状态时
+		if (m_CannyDlg.IsWindowVisible())
+		{
+			bool show_ref_image = m_CannyDlg.IsRefImageShow();
+			pView->ShowRefImage(show_ref_image);
+
+			bool show_raw_image = m_CannyDlg.IsRawImageShow();
+			pView->ShowRawImage(show_raw_image);
+		}
 
 		// 高斯对话框处于显示状态时，是否启用高斯减影图像
 		if (m_GaussianDlg.IsWindowVisible())
@@ -420,7 +427,14 @@ public:
 			pView->EnableMinus(enable_threshold);
 		}
 
-		// 检查运算对话框的显示状态，并设置相应自动启用标志
+		//// ED对话框处于显示状态时，是否启用膨胀或侵蚀
+		//if (m_ErosionDilationDlg.IsWindowVisible())
+		//{
+		//	bool enable_threshold = m_ErosionDilationDlg.CanUseErosion();
+		//	//pView->EnableMinus(enable_threshold);
+		//}
+
+		// --- 检查运算对话框的显示状态，并设置相应自动启用标志 ---
 
 		pView->AutoUseSome(AUTO_USE_OPERA, m_CannyDlg.IsWindowVisible() ? true : false);
 		pView->AutoUseSome(AUTO_USE_GAUSSIAN, m_GaussianDlg.IsWindowVisible() ? true : false);
@@ -436,6 +450,8 @@ public:
 			m_ErosionDilationDlg.IsWindowVisible() ? true : false,
 			erode
 		);
+
+		// -------------------------------------------------------
 
 		if (m_RefImage.empty())
 		{

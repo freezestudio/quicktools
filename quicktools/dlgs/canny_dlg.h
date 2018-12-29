@@ -51,9 +51,16 @@ namespace freeze {
 			m_NoDefectBtn.SetCheck(check ? BST_CHECKED:BST_UNCHECKED);
 		}
 
+		// 是否显示参考图像
 		bool IsRefImageShow() const
 		{
 			return m_ResetRefBtn.GetCheck() == BST_CHECKED;
+		}
+
+		// 是否仅显示原始图像
+		bool IsRawImageShow() const
+		{
+			return m_ResetRawBtn.GetCheck() == BST_CHECKED;
 		}
 
 		LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)

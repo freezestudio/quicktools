@@ -27,7 +27,7 @@ inline freeze::GaussianParam g_GaussianParam{
 inline freeze::ThresholdParam g_ThresholdParam{
 	128, // threshold
 	255, // max_value
-	cv::BORDER_DEFAULT,
+	cv::THRESH_BINARY,
 };
 
 inline freeze::LaplacianOfGaussianParam g_LaplacianOfGaussianParam{
@@ -53,12 +53,14 @@ public:
 
 	freeze::bmp_image m_Bitmap;
 
-	// TODO: 是否自动显示参考图像
+	// TODO: Canny -- 是否自动显示参考图像
 	bool m_ShowRefImage = false;
-	// 启动|禁用减影
+	bool m_ShowRawImage = false;
+
+	// Guassian - 启动|禁用减影
 	bool m_EnableMinus = false;
 	// 启用|禁用二值化
-	// TODO: 
+	// TODO: LoG
 	bool m_EnableThreshold = false;
 
 	BOOL PreTranslateMessage(MSG* pMsg)
@@ -125,11 +127,18 @@ public:
 		//m_CannyParam;
 	}
 
-	// 作用于参考图像(参考图像是一张指定的标准图像)
+	// Canny -- 作用于参考图像(参考图像是一张指定的标准图像)
 	void ShowRefImage(bool show = false)
 	{
 		m_ShowRefImage = show;
 		m_Bitmap.set_use_ref_data(m_ShowRefImage);
+	}
+
+	// Canny -- 仅显示原始图像
+	void ShowRawImage(bool show = false)
+	{
+		m_ShowRawImage = show;
+		m_Bitmap.set_exclude_other_image(show);
 	}
 
 	// 启用减影操作(高斯模糊时)
@@ -185,6 +194,7 @@ public:
 
 			if (m_EnableMinus)
 			{
+				// 减影
 				m_Bitmap.minus_image();
 				if (m_Bitmap.is_use_threshold())
 				{
@@ -216,6 +226,7 @@ public:
 
 			if (m_EnableMinus)
 			{
+				// 不需要减影操作
 				//m_Bitmap.minus_image();
 				if (m_Bitmap.is_use_threshold())
 				{
@@ -311,6 +322,7 @@ public:
 		{
 			auto left = (rc.Width() - m_Bitmap.width()) / 2;
 			m_Bitmap.draw_ex(dc, left);
+			//m_Bitmap.draw(dc, left);
 			//m_Bitmap.draw_opera_only(dc, left);
 		}
 	}
@@ -373,10 +385,7 @@ public:
 			g_CannyParam.l2 = l2;
 			break;
 		case IDC_CHECK_RESET_RAW://原始图像
-			if (m_Bitmap)
-			{
-				m_Bitmap.exclude_other_image(value);
-			}
+			ShowRawImage(value);
 			break;
 		case IDC_CHECK_NO_DEFECT://缺陷图像图像
 			if (m_Bitmap)
@@ -391,7 +400,7 @@ public:
 
 		if (m_Bitmap)
 		{
-			if (!m_Bitmap.show_raw_only())
+			if (!m_Bitmap.is_exclude_other_image())
 			{
 				m_Bitmap.canny(
 					g_CannyParam.threshold1,
@@ -432,8 +441,11 @@ public:
 		case IDC_EDIT_SIGMA_Y: // L2
 			g_GaussianParam.sy = value;
 			break;
-		case IDC_COMBO_BORDER_TYPE:
-			g_GaussianParam.type = freeze::convert_type(value);
+		case IDC_COMBO_BORDER_TYPE: // 边框类型
+			g_GaussianParam.type = freeze::convert_border_type(value);
+			break;
+		case IDC_COMBO_THRESHOLD_TYPE: // 二值化类型
+			g_ThresholdParam.type = freeze::convert_threshold_type(value);
 			break;
 		case IDC_CHECK_MINUS: // 启用|禁用减影
 			EnableMinus(value ? true : false);
@@ -466,7 +478,7 @@ public:
 
 		if (m_Bitmap)
 		{
-			if (!m_Bitmap.show_raw_only())
+			if (!m_Bitmap.is_exclude_other_image())
 			{
 				m_Bitmap.gaussian_blur(
 					g_GaussianParam.x,
@@ -478,9 +490,11 @@ public:
 
 				if (m_EnableMinus)
 				{
+					// 先减影
 					m_Bitmap.minus_image();
 					if (m_Bitmap.is_use_threshold())
 					{
+						// 而后 二值化
 						m_Bitmap.threshold(
 							g_ThresholdParam.threshold,
 							g_ThresholdParam.max_value,
@@ -528,9 +542,12 @@ public:
 		case IDC_EDIT_LOG_BETA: // 偏差量
 			g_LaplacianOfGaussianParam.delta = value;
 			break;
-		case IDC_COMBO_LOG_BORDER_TYPE:
-			g_GaussianParam.type = freeze::convert_type(value);
-			g_LaplacianOfGaussianParam.type = freeze::convert_type(value);
+		case IDC_COMBO_LOG_BORDER_TYPE: // 边框类型
+			g_GaussianParam.type = freeze::convert_border_type(value);
+			g_LaplacianOfGaussianParam.type = freeze::convert_border_type(value);
+			break;
+		case IDC_COMBO_THRESHOLD_TYPE_LOG: // 二值化类型
+			g_ThresholdParam.type = freeze::convert_threshold_type(value);
 			break;
 		case IDC_CHECK_LOG_MINUS: // 启用|禁用二值化
 			EnableMinus(value ? true : false);
@@ -546,7 +563,7 @@ public:
 
 		if (m_Bitmap)
 		{
-			if (!m_Bitmap.show_raw_only())
+			if (!m_Bitmap.is_exclude_other_image())
 			{
 				m_Bitmap.laplacian_of_gaussian(
 					g_LaplacianOfGaussianParam.ksize,
@@ -562,9 +579,10 @@ public:
 					g_LaplacianOfGaussianParam.delta
 				);
 
-				// TODO: 这里改为了启用/停止二值化
+				// TODO: 这里复用为启用/停止二值化
 				if (m_EnableMinus)
 				{
+					// 不需要减影操作
 					//m_Bitmap.minus_image();
 					if (m_Bitmap.is_use_threshold())
 					{
@@ -606,7 +624,7 @@ public:
 			g_ErosianDilationParam.shape = value;
 			break;
 		case IDC_COMBO_LOG_BORDER_TYPE:
-			g_ErosianDilationParam.type = freeze::convert_type(value);
+			g_ErosianDilationParam.type = freeze::convert_border_type(value);
 			break;
 		case IDC_EDIT_ITER_COUNT: // 迭代次数
 			g_ErosianDilationParam.iter = value;
@@ -617,7 +635,7 @@ public:
 
 		if (m_Bitmap)
 		{
-			if (!m_Bitmap.show_raw_only())
+			if (!m_Bitmap.is_exclude_other_image())
 			{
 				m_Bitmap.erode_dilate(
 					g_ErosianDilationParam.ksize,
