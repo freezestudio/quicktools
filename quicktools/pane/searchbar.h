@@ -11,7 +11,8 @@ namespace freeze {
 	public:
 		DECLARE_WND_CLASS(L"WTL_SearchBar");
 
-		WTL::CEdit m_SearchEdit;
+		//WTL::CEdit m_SearchEdit;
+		CMyEdit m_SearchEdit;
 		WTL::CBitmapButton m_SearchButton;
 		WTL::CBitmapButton m_SearchTypeButton;
 

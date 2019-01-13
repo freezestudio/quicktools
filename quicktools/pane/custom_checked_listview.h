@@ -39,7 +39,7 @@ namespace freeze {
 
 		BEGIN_MSG_MAP_EX(CMyCheckedListViewCtrl)
 			CHAIN_MSG_MAP(WTL::CCheckListViewCtrlImpl<CMyCheckedListViewCtrl>)
-			END_MSG_MAP()
+		END_MSG_MAP()
 
 		void CheckSelectedItems(int nCurrItem)
 		{

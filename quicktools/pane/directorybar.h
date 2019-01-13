@@ -12,6 +12,69 @@
 #define RESET_LISTVIEW_DIR_DETECT 1
 
 namespace freeze {
+	class CStaticImpl : public ATL::CWindowImpl<CStaticImpl, WTL::CStatic>
+	{
+	public:
+		DECLARE_WND_SUPERCLASS(NULL, WTL::CStatic::GetWndClassName())
+
+		BEGIN_MSG_MAP_EX(CStaticImpl)
+			MSG_WM_PAINT(OnPaint)
+		END_MSG_MAP()
+
+		void OnPaint(WTL::CDCHandle /*dc*/)
+		{
+			WTL::CPaintDC dc{ this->m_hWnd };
+			dc.SaveDC();
+
+			CRect rc;
+			this->GetClientRect(rc);
+			
+			auto hFont = WTL::AtlCreateControlFont();
+			dc.SelectFont(hFont);
+
+			dc.DrawText(L"目录", -1, &rc, DT_VCENTER | DT_CENTER | DT_SINGLELINE);
+
+			dc.RestoreDC(-1);
+		}
+	};
+
+	template<typename T,typename TBase = WTL::CEdit,typename TWinTraits = ATL::CControlWinTraits>
+	class CEditImpl : public ATL::CWindowImpl<T, TBase, TWinTraits>
+	{
+	public:
+		DECLARE_WND_SUPERCLASS2(NULL, T, TBase::GetWndClassName())
+
+		BEGIN_MSG_MAP_EX(CStaticImpl)
+			MSG_WM_PAINT(OnPaint)
+		END_MSG_MAP()
+
+		void OnPaint(WTL::CDCHandle /*dc*/)
+		{
+			WTL::CPaintDC dc{ this->m_hWnd };
+			dc.SaveDC();
+
+			CRect rc;
+			this->GetClientRect(rc);
+
+			auto hFont = WTL::AtlCreateControlFont();
+			dc.SelectFont(hFont);
+			ATL::CString text;
+			TBase::GetWindowText(text);
+			dc.DrawText(text.GetBuffer(), -1, &rc, DT_VCENTER | DT_LEFT | DT_SINGLELINE);
+			
+			dc.RestoreDC(-1);
+		}
+	};
+
+	class CMyEdit : public CEditImpl<CMyEdit>
+	{
+	public:
+		DECLARE_WND_SUPERCLASS(_T("WTL_MyEdit"), GetWndClassName())
+
+		CMyEdit()
+		{
+		}
+	};
 
 	class CDirBar :
 		public ATL::CWindowImpl<CDirBar>
@@ -19,11 +82,14 @@ namespace freeze {
 	public:
 		DECLARE_WND_CLASS(L"WTL_DirBar");
 
-		WTL::CStatic m_Caption;// 目录标签
-		WTL::CEdit m_DirEdit;
+		//WTL::CStatic m_Caption;// 目录标签
+		CStaticImpl m_Caption;
+		//WTL::CEdit m_DirEdit;
+		CMyEdit m_DirEdit;
 		WTL::CButton m_DirBtn;
 
-		WTL::CEdit m_DetectDirEdit;
+		//WTL::CEdit m_DetectDirEdit;
+		CMyEdit m_DetectDirEdit;
 		WTL::CButton m_DetectDirBtn;
 		std::wstring m_StrDetectDir;
 
@@ -68,10 +134,10 @@ namespace freeze {
 				WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | SS_LEFT,
 				0UL,
 				ID_DIRECTORY);
-			SetMsgHandled(FALSE);
+			
 			m_DirEdit.Create(this->m_hWnd,
 				CRect{61, 0, 240, 20},
-				L"请从右侧按钮选择图像文件目录",
+				L"图像文件目录",
 				WS_CHILD | WS_VISIBLE | WS_DISABLED | WS_CLIPSIBLINGS | ES_LEFT,
 				0UL,
 				ID_DIRECTORY_EDIT);
@@ -84,10 +150,11 @@ namespace freeze {
 
 			m_DetectDirEdit.Create(this->m_hWnd,
 				CRect{281, 0, 480, 20},
-				L"请选择检测图像文件目录",
+				L"检测图像文件目录",
 				WS_CHILD | WS_VISIBLE | WS_DISABLED | WS_CLIPSIBLINGS | ES_LEFT,
 				0UL,
 				ID_DETECTDIRECTORY_EDIT);
+
 			m_DetectDirBtn.Create(this->m_hWnd,
 				CRect{481, 0, 520, 20},
 				L"...",

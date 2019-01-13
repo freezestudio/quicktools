@@ -17,6 +17,7 @@
 #include <atlbase.h>
 #include <atlapp.h>
 #include <atlimage.h>
+#include <atlstr.h>
 
 extern WTL::CAppModule _Module;
 
